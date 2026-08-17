@@ -1,4 +1,4 @@
-# # Equipe 06 · AED 2026/2
+# Equipe 06 · AED 2026/2
 Arquitetura Reativa e Event-Driven Atividade Incremental AED 2026 2 Equipe 06
 
 ## Integrantes

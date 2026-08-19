@@ -1,0 +1,28 @@
+sistema-emprestimo:
+  topicos:
+    emprestimo-solicitado: emprestimo.solicitado.v1
+
+spring:
+  application:
+    name: sistema-emprestimo
+
+  kafka:
+    bootstrap-servers: localhost:19093
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      acks: all                       # nao considera gravado ate as replicas confirmarem
+      properties:
+        enable.idempotence: true      # evita duplicata gerada pelo retry do PRODUTOR
+        # Nao envia o nome da classe Java no cabecalho. Se enviasse, estaria
+        # empurrando um detalhe INTERNO deste servico para dentro do contrato —
+        # e o consumidor, que tem a classe dele, nao saberia o que fazer com isso.
+        spring.json.add.type.headers: false
+  datasource:
+    url: jdbc:postgresql://localhost:15430/aed
+    password: postgres
+    username: postgres
+
+  sql:
+    init:
+      mode: always

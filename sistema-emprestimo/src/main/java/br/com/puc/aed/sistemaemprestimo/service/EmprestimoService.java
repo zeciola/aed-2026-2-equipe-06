@@ -44,7 +44,7 @@ public class EmprestimoService {
 
         ProducerRecord<String, EmprestimoSolicitadoEvent> producerRecord = new ProducerRecord<>(
                 topico,
-                emprestimo.getId().toString(),
+                emprestimo.getCpf(),
                 event
         );
 

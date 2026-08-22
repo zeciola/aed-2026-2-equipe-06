@@ -1,0 +1,58 @@
+sistema-margem:
+  topico:
+    empresitmo-solicitado: emprestimo.solicitado.v1
+    margem-recusada: margem.recusada.v1
+    margem-reservada: margem.reservada.v1
+
+spring:
+  application:
+    name: sistema-margem
+  main:
+    web-application-type: none
+
+  kafka:
+    bootstrap-servers: localhost:19093
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      acks: all                       # nao considera gravado ate as replicas confirmarem
+      properties:
+        enable.idempotence: true      # evita duplicata gerada pelo retry do PRODUTOR
+        # Nao envia o nome da classe Java no cabecalho. Se enviasse, estaria
+        # empurrando um detalhe INTERNO deste servico para dentro do contrato —
+        # e o consumidor, que tem a classe dele, nao saberia o que fazer com isso.
+        spring.json.add.type.headers: false
+
+    consumer:
+      group-id: sistema-margem
+      auto-offset-reset: earliest
+      enable-auto-commit: false       # quem confirma o offset e o nosso codigo
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        # Ignora qualquer cabecalho de tipo que venha do produtor: a classe a
+        # usar e a NOSSA, nao a dele. E o que permite que os dois servicos
+        # tenham classes diferentes para o mesmo evento.
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: br.com.puc.aed.sistemamargem.domain.EmprestimoSolicitadoEvent
+        spring.json.trusted.packages: br.com.puc.aed.sistemamargem.domain
+        metadata.max.age.ms: 5000
+
+    listener:
+      ack-mode: manual_immediate      # o ack e explicito, depois do commit
+
+  datasource:
+    url: jdbc:postgresql://localhost:15430/aed
+    password: postgres
+    username: postgres
+
+  sql:
+    init:
+      mode: always
+
+logging:
+  level:
+    org.springframework.jdbc.core.JdbcTemplate: DEBUG
+    org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate: DEBUG
+    org.springframework.jdbc.core.StatementCreatorUtils: TRACE

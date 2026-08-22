@@ -26,13 +26,10 @@ public class MargemListerner {
     }
 
     @KafkaListener(topics = "${sistema-margem.topico.empresitmo-solicitado}", groupId = "sistema-margem")
-    public void verificarMargem(ConsumerRecord<String, EmprestimoSolicitadoEvent> record, Acknowledgment ack) {
-        var eventoId = obterId(record);
-        try {
-            margemService.processarSolicitacaoEmprestimo(eventoId, record.value());
-        } finally {
-            ack.acknowledge();
-        }
+    public void verificarMargem(ConsumerRecord<String, EmprestimoSolicitadoEvent> consumerRecord, Acknowledgment ack) {
+        var eventoId = obterId(consumerRecord);
+        margemService.processarSolicitacaoEmprestimo(eventoId, consumerRecord.value());
+        ack.acknowledge();
     }
 
     private @Nullable String obterId(ConsumerRecord<String, EmprestimoSolicitadoEvent> registro) {

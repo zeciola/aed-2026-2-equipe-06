@@ -1,9 +1,8 @@
 sistema-margem:
   topico:
     empresitmo-solicitado: emprestimo.solicitado.v1
-    margem-autorizada: margem.autorizada.v1
+    margem-recusada: margem.recusada.v1
     margem-reservada: margem.reservada.v1
-    analise-solicitada: analise.solicitada.v1
 
 spring:
   application:
@@ -13,6 +12,17 @@ spring:
 
   kafka:
     bootstrap-servers: localhost:19093
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      acks: all                       # nao considera gravado ate as replicas confirmarem
+      properties:
+        enable.idempotence: true      # evita duplicata gerada pelo retry do PRODUTOR
+        # Nao envia o nome da classe Java no cabecalho. Se enviasse, estaria
+        # empurrando um detalhe INTERNO deste servico para dentro do contrato —
+        # e o consumidor, que tem a classe dele, nao saberia o que fazer com isso.
+        spring.json.add.type.headers: false
 
     consumer:
       group-id: sistema-margem

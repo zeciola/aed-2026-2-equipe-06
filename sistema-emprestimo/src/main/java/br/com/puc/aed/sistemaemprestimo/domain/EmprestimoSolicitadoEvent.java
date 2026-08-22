@@ -4,13 +4,36 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.math.BigDecimal;
 
-public record EmprestimoSolicitadoEvent (
-        @JsonProperty("cpf")
-        String cpf,
+public final class EmprestimoSolicitadoEvent {
 
-        @JsonProperty("valorParcela")
-        BigDecimal valorParcela,
+    private final String cpf;
+    private final BigDecimal valorParcela;
+    private final Integer codigoVerba;
 
-        @JsonProperty("codigoVerba")
-        Integer codigoVerba
-) {}
+    public EmprestimoSolicitadoEvent(String cpf, BigDecimal valorParcela, Integer codigoVerba) {
+        this.cpf = cpf;
+        this.valorParcela = valorParcela;
+        this.codigoVerba = codigoVerba;
+    }
+
+    @JsonProperty("cpf")
+    public String cpf() {
+        return cpf;
+    }
+
+    @JsonProperty("valorParcela")
+    public BigDecimal valorParcela() {
+        return valorParcela;
+    }
+
+    @JsonProperty("codigoVerba")
+    public Integer codigoVerba() {
+        return codigoVerba;
+    }
+
+    @Override
+    public String toString() {
+        return "EmprestimoSolicitadoEvent{cpf='" + cpf + "', valorParcela=" + valorParcela
+                + ", codigoVerba=" + codigoVerba + "}";
+    }
+}

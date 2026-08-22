@@ -10,7 +10,7 @@ Líder: (a definir)
 | --- | --- | --- |
 | Henrique Miguel de Jesus | 255486 | |
 | Paulo Henrique Nunes Vanderley | 1456295 | |
-| Rodrigo Pretes Maia | 257199 | |
+| Rodrigo Pretes Maia | 257199 | RodrigoPretes-257199 |
 | José Ricardo Ciola Bricio | 1669938 | |
 | Diego Bruno Dantas Diógenes | 1665455 | |
 | Gabriel Moreira da Silva de Faria | 1665580 | gabezy |

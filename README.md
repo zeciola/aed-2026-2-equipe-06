@@ -24,5 +24,76 @@ análise reprova. Detalhes e critérios atendidos em [docs/adr/ADR-002-dominio-d
 
 ## Como rodar
 
-_A ser preenchido na Parte B, quando o publisher e o consumer existirem (Kafka + Spring Boot,
-Java 21, Docker Compose)._
+Pré-requisitos: Java 21, Docker e Docker Compose. Cada serviço é um projeto Maven
+independente (usa o próprio `./mvnw`, sem pom pai).
+
+### 1. Subir a infraestrutura
+
+Na raiz do repositório:
+
+```bash
+docker compose up -d
+```
+
+Sobe Kafka (porta `19093`), Postgres (porta `15430`, banco `aed`) e o Kafka UI
+(`http://localhost:8089`, pra inspecionar tópicos e mensagens pelo navegador).
+
+### 2. Subir os três serviços
+
+Cada um em um terminal, a partir da raiz do repositório (`schema.sql` de cada módulo cria as
+próprias tabelas automaticamente na primeira subida):
+
+```bash
+cd sistema-emprestimo && ./mvnw spring-boot:run   # publisher HTTP, porta 8080
+```
+```bash
+cd sistema-margem && ./mvnw spring-boot:run       # consumidor idempotente (sem porta HTTP)
+```
+```bash
+cd sistema-analise && ./mvnw spring-boot:run      # consumidor idempotente (sem porta HTTP)
+```
+
+### 3. Disparar uma solicitação de empréstimo
+
+Requisições de exemplo já prontas em [`sistema-emprestimo/request/`](sistema-emprestimo/request/):
+
+```bash
+cd sistema-emprestimo/request
+./make_request.sh emprestimo.json                  # fluxo feliz
+./make_request.sh cpf_margem_insuficiente.json      # recusado por margem insuficiente
+./make_request.sh cpf_analise_aprovada.json         # margem ok, análise de crédito aprova
+./make_request.sh cpf_analise_reprovada.json        # margem ok, análise de crédito reprova
+```
+
+A API responde `202 Accepted` na hora — o resultado (margem reservada/recusada, crédito
+aprovado/reprovado) acontece de forma assíncrona, via Kafka.
+
+### 4. Conferir o resultado
+
+Pelo banco:
+
+```bash
+docker exec postgres psql -U postgres -d aed -c "select * from emprestimo order by data_emprestimo desc limit 5;"
+docker exec postgres psql -U postgres -d aed -c "select * from margem order by criado_em desc limit 5;"
+docker exec postgres psql -U postgres -d aed -c "select * from analise order by criado_em desc limit 5;"
+```
+
+Pelo Kafka (cabeçalhos CloudEvents inclusos):
+
+```bash
+docker exec kafka kafka-console-consumer --bootstrap-server localhost:29092 \
+  --topic analise.aprovada.v1 --property print.headers=true --from-beginning
+```
+
+Ou pelo Kafka UI em `http://localhost:8089`.
+
+### 5. Rodar os testes automatizados
+
+```bash
+cd sistema-emprestimo && ./mvnw test
+cd sistema-margem && ./mvnw test
+cd sistema-analise && ./mvnw test
+```
+
+O `sistema-analise` tem um teste de idempotência ponta a ponta (`IdempotenciaTest`) que sobe
+Kafka embutido e H2 em memória — roda sozinho, sem precisar do `docker compose up`.

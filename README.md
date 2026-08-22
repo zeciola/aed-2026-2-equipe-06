@@ -6,15 +6,15 @@ Arquitetura Reativa e Event-Driven · Atividade Incremental · AED 2026/2 · Equ
 
 Líder: (a definir)
 
-| Nome | Matrícula |
-| --- | --- |
-| Henrique Miguel de Jesus | 255486 |
-| Paulo Henrique Nunes Vanderley | 1456295 |
-| Rodrigo Pretes Maia | 257199 |
-| José Ricardo Ciola Bricio | 1669938 |
-| Diego Bruno Dantas Diógenes | 1665455 |
-| Gabriel Moreira da Silva de Faria | 1665580 |
-| Natan de Almeida Figueiredo | 1669471 |
+| Nome | Matrícula | Username |
+| --- | --- | --- |
+| Henrique Miguel de Jesus | 255486 | |
+| Paulo Henrique Nunes Vanderley | 1456295 | |
+| Rodrigo Pretes Maia | 257199 | |
+| José Ricardo Ciola Bricio | 1669938 | |
+| Diego Bruno Dantas Diógenes | 1665455 | |
+| Gabriel Moreira da Silva de Faria | 1665580 | gabezy |
+| Natan de Almeida Figueiredo | 1669471 | |
 
 ## O domínio, em uma frase
 

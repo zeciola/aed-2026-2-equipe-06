@@ -1,13 +1,13 @@
-package br.com.puc.aed.sistemamargem.domain;
+package br.com.puc.aed.sistemaanalise.domain;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public final class MargemReservadaEvent {
+public final class AnaliseAprovadaEvent {
 
     private final String cpf;
     private final String solicitacaoId;
 
-    public MargemReservadaEvent(String cpf, String solicitacaoId) {
+    public AnaliseAprovadaEvent(String cpf, String solicitacaoId) {
         this.cpf = cpf;
         this.solicitacaoId = solicitacaoId;
     }
@@ -24,6 +24,6 @@ public final class MargemReservadaEvent {
 
     @Override
     public String toString() {
-        return "MargemReservadaEvent{cpf='" + cpf + "', solicitacaoId='" + solicitacaoId + "'}";
+        return "AnaliseAprovadaEvent{cpf='" + cpf + "', solicitacaoId='" + solicitacaoId + "'}";
     }
 }

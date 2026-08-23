@@ -1,0 +1,46 @@
+sistema-analise:
+  topico:
+    margem-reservada: margem.reservada.v1
+    analise-aprovada: analise.aprovada.v1
+    analise-reprovada: analise.reprovada.v1
+
+spring:
+  application:
+    name: sistema-analise
+  main:
+    web-application-type: none
+
+  kafka:
+    bootstrap-servers: localhost:19093
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+        spring.json.add.type.headers: false
+
+    consumer:
+      group-id: sistema-analise
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: br.com.puc.aed.sistemaanalise.domain.MargemReservadaEvent
+        spring.json.trusted.packages: br.com.puc.aed.sistemaanalise.domain
+        metadata.max.age.ms: 5000
+
+    listener:
+      ack-mode: manual_immediate
+
+  datasource:
+    url: jdbc:postgresql://localhost:15430/aed
+    password: postgres
+    username: postgres
+
+  sql:
+    init:
+      mode: always

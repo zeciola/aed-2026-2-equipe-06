@@ -1,6 +1,6 @@
 package br.com.puc.aed.sistemaemprestimo.controller;
 
-import br.com.puc.aed.sistemaemprestimo.domain.SolicitarEmprestimoRequest;
+import br.com.puc.aed.sistemaemprestimo.domain.SolicitarEmprestimoVO;
 import br.com.puc.aed.sistemaemprestimo.service.EmprestimoService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,7 +19,7 @@ public class EmprestimoController {
     }
 
     @PostMapping("/solicitar")
-    public ResponseEntity<Void> solicitar(@RequestBody SolicitarEmprestimoRequest request) {
+    public ResponseEntity<Void> solicitar(@RequestBody SolicitarEmprestimoVO request) {
         emprestimoService.solictar(request);
         return ResponseEntity.accepted().build();
     }

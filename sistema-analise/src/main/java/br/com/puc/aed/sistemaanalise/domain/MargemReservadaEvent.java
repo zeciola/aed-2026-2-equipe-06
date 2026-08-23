@@ -1,13 +1,18 @@
-package br.com.puc.aed.sistemamargem.domain;
+package br.com.puc.aed.sistemaanalise.domain;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public final class MargemReservadaEvent {
 
     private final String cpf;
     private final String solicitacaoId;
 
-    public MargemReservadaEvent(String cpf, String solicitacaoId) {
+    @JsonCreator
+    public MargemReservadaEvent(@JsonProperty("cpf") String cpf,
+                                @JsonProperty("solicitacaoId") String solicitacaoId) {
         this.cpf = cpf;
         this.solicitacaoId = solicitacaoId;
     }

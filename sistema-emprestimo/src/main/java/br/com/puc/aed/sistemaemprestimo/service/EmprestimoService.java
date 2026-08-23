@@ -1,7 +1,7 @@
 package br.com.puc.aed.sistemaemprestimo.service;
 
 import br.com.puc.aed.sistemaemprestimo.domain.EmprestimoSolicitadoEvent;
-import br.com.puc.aed.sistemaemprestimo.domain.SolicitarEmprestimoRequest;
+import br.com.puc.aed.sistemaemprestimo.domain.SolicitarEmprestimoVO;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,8 +33,9 @@ public class EmprestimoService {
     }
 
     @Transactional
-    public void solictar(SolicitarEmprestimoRequest request) {
-        var emprestimo = emprestimoRepository.save(request.toEmprestimo());
+    public void solictar(SolicitarEmprestimoVO request) {
+        var emprestimo = request.toEmprestimo();
+        emprestimoRepository.salvar(emprestimo);
 
         var event = new EmprestimoSolicitadoEvent(
                 emprestimo.getCpf(),

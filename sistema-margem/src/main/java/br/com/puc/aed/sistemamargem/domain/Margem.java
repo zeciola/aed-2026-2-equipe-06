@@ -1,16 +1,11 @@
 package br.com.puc.aed.sistemamargem.domain;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Table;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-@Table("margem")
 public class Margem {
 
-    @Id
     private UUID id;
     private String cpf;
     private BigDecimal valor;

@@ -2,14 +2,16 @@ package br.com.puc.aed.sistemamargem.domain;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public final class MargemReservadaEvent {
+public final class MargemRecusadaEvent {
 
     private final String cpf;
     private final String solicitacaoId;
+    private final String motivo;
 
-    public MargemReservadaEvent(String cpf, String solicitacaoId) {
+    public MargemRecusadaEvent(String cpf, String solicitacaoId, String motivo) {
         this.cpf = cpf;
         this.solicitacaoId = solicitacaoId;
+        this.motivo = motivo;
     }
 
     @JsonProperty("cpf")
@@ -22,8 +24,14 @@ public final class MargemReservadaEvent {
         return solicitacaoId;
     }
 
+    @JsonProperty("motivo")
+    public String motivo() {
+        return motivo;
+    }
+
     @Override
     public String toString() {
-        return "MargemReservadaEvent{cpf='" + cpf + "', solicitacaoId='" + solicitacaoId + "'}";
+        return "MargemRecusadaEvent{cpf='" + cpf + "', solicitacaoId='" + solicitacaoId
+                + "', motivo='" + motivo + "'}";
     }
 }

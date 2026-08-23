@@ -1,16 +1,11 @@
 package br.com.puc.aed.sistemaemprestimo.domain;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Table;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-@Table("emprestimo")
 public class Emprestimo {
 
-    @Id
     private final UUID id;
     private final String cpf;
     private final BigDecimal valorParcela;

@@ -9,7 +9,7 @@ Líder: Gabriel Moreira da Silva de Faria
 | Nome | Matrícula | Username |
 | --- | --- | --- |
 | Henrique Miguel de Jesus | 255486 | |
-| Paulo Henrique Nunes Vanderley | 1456295 | |
+| Paulo Henrique Nunes Vanderley | 1456295 | paulnune |
 | Rodrigo Pretes Maia | 257199 | RodrigoPretes-257199 |
 | José Ricardo Ciola Bricio | 1669938 | zeciola |
 | Diego Bruno Dantas Diógenes | 1665455 | diegodiogenes |

@@ -1,0 +1,9 @@
+{
+  "name": "aed-2026-2-equipe-06",
+  "image": "mcr.microsoft.com/devcontainers/java:1-21-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "forwardPorts": [8080, 8089, 15430, 19093],
+  "postCreateCommand": "java -version"
+}

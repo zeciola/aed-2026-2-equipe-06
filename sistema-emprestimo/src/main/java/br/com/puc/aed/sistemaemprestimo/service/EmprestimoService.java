@@ -49,10 +49,10 @@ public class EmprestimoService {
                 event
         );
 
-        producerRecord.headers().add("ce-specversion", VERSAO_CLOUDEVENTS.getBytes(StandardCharsets.UTF_8));
-        producerRecord.headers().add("ce-source", ORIGEM.getBytes(StandardCharsets.UTF_8));
-        producerRecord.headers().add("ce-time", emprestimo.getDataEmprestimo().toString().getBytes(StandardCharsets.UTF_8));
-        producerRecord.headers().add("ce-type", TIPO_DO_EVENTO.getBytes(StandardCharsets.UTF_8));
+        producerRecord.headers().add("ce_specversion", VERSAO_CLOUDEVENTS.getBytes(StandardCharsets.UTF_8));
+        producerRecord.headers().add("ce_source", ORIGEM.getBytes(StandardCharsets.UTF_8));
+        producerRecord.headers().add("ce_time", emprestimo.getDataEmprestimo().toString().getBytes(StandardCharsets.UTF_8));
+        producerRecord.headers().add("ce_type", TIPO_DO_EVENTO.getBytes(StandardCharsets.UTF_8));
         producerRecord.headers().add("ce_id", emprestimo.getId().toString().getBytes(StandardCharsets.UTF_8));
 
         kafkaTemplate.send(producerRecord)

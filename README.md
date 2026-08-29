@@ -27,6 +27,9 @@ análise reprova. Detalhes e critérios atendidos em [docs/adr/ADR-002-dominio-d
 Pré-requisitos: Java 21, Docker e Docker Compose. Cada serviço é um projeto Maven
 independente (usa o próprio `./mvnw`, sem pom pai).
 
+No GitHub Codespaces o ambiente já vem pronto (ver `.devcontainer/`).
+Em Codespace antigo, sem rebuild: `sdk use java 21.0.10-ms`.
+
 ### 1. Subir a infraestrutura
 
 Na raiz do repositório:

@@ -65,19 +65,20 @@ public class MargemService {
         var margemRestante = valorMargemAtual.add(margem.getValor());
 
         if (margemRestante.compareTo(BigDecimal.ZERO) < 0) {
-            gerarMargemRecusadaEvent(eventoId, event.cpf());
+            gerarMargemRecusadaEvent(event.cpf(), event.emprestimoId());
             return;
         }
 
         margemRepository.salvar(margem);
-        gerarMargemReservadaEvent(eventoId, event.cpf());
+        gerarMargemReservadaEvent(event.cpf(), event.emprestimoId());
     }
 
-    private void gerarMargemRecusadaEvent(String eventoId, String cpf) {
+    private void gerarMargemRecusadaEvent(String cpf, String emprestimoId) {
         var time = Instant.now();
+        var novoEventoId = UUID.randomUUID().toString();
         var event = new MargemRecusadaEvent(
                 cpf,
-                eventoId,
+                emprestimoId,
                 "Margem insuficiente"
         );
 
@@ -91,14 +92,15 @@ public class MargemService {
         recusadaEventProducerRecord.headers().add("ce_source", ORIGEM.getBytes(StandardCharsets.UTF_8));
         recusadaEventProducerRecord.headers().add("ce_time", time.toString().getBytes(StandardCharsets.UTF_8));
         recusadaEventProducerRecord.headers().add("ce_type", "margem.recusada.v1".getBytes(StandardCharsets.UTF_8));
-        recusadaEventProducerRecord.headers().add("ce_id", eventoId.getBytes(StandardCharsets.UTF_8));
+        recusadaEventProducerRecord.headers().add("ce_id", novoEventoId.getBytes(StandardCharsets.UTF_8));
 
         margemRecusadaEventTemplate.send(recusadaEventProducerRecord);
     }
 
-    private void gerarMargemReservadaEvent(String eventoId, String cpf) {
+    private void gerarMargemReservadaEvent(String cpf, String emprestimoId) {
         var time = Instant.now();
-        var event = new MargemReservadaEvent(cpf, eventoId);
+        var novoEventoId = UUID.randomUUID().toString();
+        var event = new MargemReservadaEvent(cpf, emprestimoId);
 
         ProducerRecord<String, MargemReservadaEvent> reservadaEventProducerRecord = new ProducerRecord<>(
                 margemReservadaTopic,
@@ -110,7 +112,7 @@ public class MargemService {
         reservadaEventProducerRecord.headers().add("ce_source", ORIGEM.getBytes(StandardCharsets.UTF_8));
         reservadaEventProducerRecord.headers().add("ce_time", time.toString().getBytes(StandardCharsets.UTF_8));
         reservadaEventProducerRecord.headers().add("ce_type", "margem.reservada.v1".getBytes(StandardCharsets.UTF_8));
-        reservadaEventProducerRecord.headers().add("ce_id", eventoId.getBytes(StandardCharsets.UTF_8));
+        reservadaEventProducerRecord.headers().add("ce_id", novoEventoId.getBytes(StandardCharsets.UTF_8));
 
         margemReservadaEventTemplate.send(reservadaEventProducerRecord);
     }

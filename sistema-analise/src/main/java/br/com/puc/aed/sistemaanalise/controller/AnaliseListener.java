@@ -16,7 +16,7 @@ import java.nio.charset.StandardCharsets;
 @Component
 public class AnaliseListener {
 
-    private static final String CABECALHO_ID = "ce-id";
+    private static final String CABECALHO_ID = "ce_id";
     private static final Logger log = LoggerFactory.getLogger(AnaliseListener.class);
 
     private final AnaliseService analiseService;

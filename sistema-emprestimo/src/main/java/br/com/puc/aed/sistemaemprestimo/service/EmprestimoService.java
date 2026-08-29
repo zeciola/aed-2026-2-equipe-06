@@ -53,7 +53,7 @@ public class EmprestimoService {
         producerRecord.headers().add("ce-source", ORIGEM.getBytes(StandardCharsets.UTF_8));
         producerRecord.headers().add("ce-time", emprestimo.getDataEmprestimo().toString().getBytes(StandardCharsets.UTF_8));
         producerRecord.headers().add("ce-type", TIPO_DO_EVENTO.getBytes(StandardCharsets.UTF_8));
-        producerRecord.headers().add("ce-id", emprestimo.getId().toString().getBytes(StandardCharsets.UTF_8));
+        producerRecord.headers().add("ce_id", emprestimo.getId().toString().getBytes(StandardCharsets.UTF_8));
 
         kafkaTemplate.send(producerRecord)
                 .whenComplete((records, throwable) -> {

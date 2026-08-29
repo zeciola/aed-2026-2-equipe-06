@@ -17,7 +17,7 @@ embutir a lógica de análise dentro do próprio `sistema-margem`; (3) `sistema-
 `sistema-analise` via REST síncrono em vez de publicar evento. Também apontou um problema de
 modelagem antes de qualquer código: a tabela `evento_processado` de `sistema-margem` e a
 tabela de dedup do novo serviço ficariam no mesmo banco/schema Postgres (`aed`/`public`), e o
-`ce-id` que `sistema-margem` publica em `margem.reservada.v1` reaproveita o mesmo id recebido
+`ce_id` que `sistema-margem` publica em `margem.reservada.v1` reaproveita o mesmo id recebido
 em `emprestimo.solicitado.v1` — se as duas tabelas tivessem o mesmo nome, o dedup do novo
 serviço nunca processaria nada, porque o id já estaria lá.
 

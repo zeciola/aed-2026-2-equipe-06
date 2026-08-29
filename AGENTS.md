@@ -160,10 +160,10 @@ adicionais fora deste layout sem justificar em ADR.
 - Nenhuma data em epoch no corpo da mensagem.
 - Os cinco cabeçalhos `ce_*` obrigatórios estão presentes e usam underscore
   (`ce_specversion`, `ce_id`, `ce_source`, `ce_type`, `ce_time`) — hoje o
-  código publica com hífen (`ce-id` etc.), precisa alinhar.
+  código publica com hífen (`ce_id` etc.), precisa alinhar.
 - O `eventoId` publicado no `ce_id` é um id próprio do evento, não o id da
   entidade de negócio reaproveitado — hoje `sistema-emprestimo` publica
-  `emprestimo.getId()` como `ce-id`, precisa de um `eventoId` separado.
+  `emprestimo.getId()` como `ce_id`, precisa de um `eventoId` separado.
 - `domain/` não importa `org.apache.kafka` nem `org.springframework` de
   infraestrutura (JDBC, Kafka) — só anotações Jackson.
 - `@Transactional` não aparece em `controller/` nem em `Listener`.

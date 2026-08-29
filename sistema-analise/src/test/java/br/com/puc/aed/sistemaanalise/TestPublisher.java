@@ -35,7 +35,7 @@ public class TestPublisher {
         ProducerRecord<String, String> registro = new ProducerRecord<>(topico, cpf, json);
 
         registro.headers().add("ce-specversion", "1.0".getBytes(UTF_8));
-        registro.headers().add("ce-id", eventoId.getBytes(UTF_8));
+        registro.headers().add("ce_id", eventoId.getBytes(UTF_8));
         registro.headers().add("ce-source", "sistema-margem".getBytes(UTF_8));
         registro.headers().add("ce-type", "margem.reservada.v1".getBytes(UTF_8));
         registro.headers().add("ce-time", Instant.now().toString().getBytes(UTF_8));

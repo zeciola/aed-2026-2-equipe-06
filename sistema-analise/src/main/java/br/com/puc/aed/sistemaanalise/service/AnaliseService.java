@@ -74,7 +74,7 @@ public class AnaliseService {
         producerRecord.headers().add("ce-source", ORIGEM.getBytes(StandardCharsets.UTF_8));
         producerRecord.headers().add("ce-time", time.toString().getBytes(StandardCharsets.UTF_8));
         producerRecord.headers().add("ce-type", "analise.aprovada.v1".getBytes(StandardCharsets.UTF_8));
-        producerRecord.headers().add("ce-id", novoEventoId.getBytes(StandardCharsets.UTF_8));
+        producerRecord.headers().add("ce_id", novoEventoId.getBytes(StandardCharsets.UTF_8));
 
         analiseAprovadaEventTemplate.send(producerRecord);
     }
@@ -91,7 +91,7 @@ public class AnaliseService {
         producerRecord.headers().add("ce-source", ORIGEM.getBytes(StandardCharsets.UTF_8));
         producerRecord.headers().add("ce-time", time.toString().getBytes(StandardCharsets.UTF_8));
         producerRecord.headers().add("ce-type", "analise.reprovada.v1".getBytes(StandardCharsets.UTF_8));
-        producerRecord.headers().add("ce-id", novoEventoId.getBytes(StandardCharsets.UTF_8));
+        producerRecord.headers().add("ce_id", novoEventoId.getBytes(StandardCharsets.UTF_8));
 
         analiseReprovadaEventTemplate.send(producerRecord);
     }

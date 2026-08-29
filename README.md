@@ -30,9 +30,20 @@ independente (usa o próprio `./mvnw`, sem pom pai).
 No GitHub Codespaces o ambiente já vem pronto (ver `.devcontainer/`).
 Em Codespace antigo, sem rebuild: `sdk use java 21.0.10-ms`.
 
-### 1. Subir a infraestrutura
+### Modo rápido — tudo de uma vez
 
-Na raiz do repositório:
+```bash
+docker compose -f compose.yml -f compose.services.yml up -d --build
+```
+
+Sobe infraestrutura (Kafka, Postgres, Kafka UI) e os três serviços Java em containers.
+Útil para testar o fluxo completo ou avaliar o projeto sem abrir vários terminais.
+
+### Modo desenvolvimento — serviços locais
+
+Preferível quando se está editando código (ciclo mais rápido, log isolado por serviço).
+
+**1. Subir a infraestrutura:**
 
 ```bash
 docker compose up -d
@@ -41,10 +52,7 @@ docker compose up -d
 Sobe Kafka (porta `19093`), Postgres (porta `15430`, banco `aed`) e o Kafka UI
 (`http://localhost:8089`, pra inspecionar tópicos e mensagens pelo navegador).
 
-### 2. Subir os três serviços
-
-Cada um em um terminal, a partir da raiz do repositório (`schema.sql` de cada módulo cria as
-próprias tabelas automaticamente na primeira subida):
+**2. Subir os três serviços** (cada um em um terminal):
 
 ```bash
 cd sistema-emprestimo && ./mvnw spring-boot:run   # publisher HTTP, porta 8080

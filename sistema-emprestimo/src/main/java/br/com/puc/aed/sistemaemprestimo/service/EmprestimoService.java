@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 @Service
 public class EmprestimoService {
@@ -38,8 +39,10 @@ public class EmprestimoService {
         emprestimoRepository.salvar(emprestimo);
 
         var event = new EmprestimoSolicitadoEvent(
+                emprestimo.getId().toString(),
                 emprestimo.getCpf(),
                 emprestimo.getValorParcela(),
+                emprestimo.getValorTotal(),
                 emprestimo.getCodigoVerba()
         );
 
@@ -53,7 +56,8 @@ public class EmprestimoService {
         producerRecord.headers().add("ce_source", ORIGEM.getBytes(StandardCharsets.UTF_8));
         producerRecord.headers().add("ce_time", emprestimo.getDataEmprestimo().toString().getBytes(StandardCharsets.UTF_8));
         producerRecord.headers().add("ce_type", TIPO_DO_EVENTO.getBytes(StandardCharsets.UTF_8));
-        producerRecord.headers().add("ce_id", emprestimo.getId().toString().getBytes(StandardCharsets.UTF_8));
+        var eventoId = UUID.randomUUID().toString();
+        producerRecord.headers().add("ce_id", eventoId.getBytes(StandardCharsets.UTF_8));
 
         kafkaTemplate.send(producerRecord)
                 .whenComplete((records, throwable) -> {

@@ -70,10 +70,10 @@ public class AnaliseService {
         ProducerRecord<String, AnaliseAprovadaEvent> producerRecord =
                 new ProducerRecord<>(analiseAprovadaTopic, cpf, event);
 
-        producerRecord.headers().add("ce-specversion", VERSAO_CLOUDEVENTS.getBytes(StandardCharsets.UTF_8));
-        producerRecord.headers().add("ce-source", ORIGEM.getBytes(StandardCharsets.UTF_8));
-        producerRecord.headers().add("ce-time", time.toString().getBytes(StandardCharsets.UTF_8));
-        producerRecord.headers().add("ce-type", "analise.aprovada.v1".getBytes(StandardCharsets.UTF_8));
+        producerRecord.headers().add("ce_specversion", VERSAO_CLOUDEVENTS.getBytes(StandardCharsets.UTF_8));
+        producerRecord.headers().add("ce_source", ORIGEM.getBytes(StandardCharsets.UTF_8));
+        producerRecord.headers().add("ce_time", time.toString().getBytes(StandardCharsets.UTF_8));
+        producerRecord.headers().add("ce_type", "analise.aprovada.v1".getBytes(StandardCharsets.UTF_8));
         producerRecord.headers().add("ce_id", novoEventoId.getBytes(StandardCharsets.UTF_8));
 
         analiseAprovadaEventTemplate.send(producerRecord);
@@ -87,10 +87,10 @@ public class AnaliseService {
         ProducerRecord<String, AnaliseReprovadaEvent> producerRecord =
                 new ProducerRecord<>(analiseReprovadaTopic, cpf, event);
 
-        producerRecord.headers().add("ce-specversion", VERSAO_CLOUDEVENTS.getBytes(StandardCharsets.UTF_8));
-        producerRecord.headers().add("ce-source", ORIGEM.getBytes(StandardCharsets.UTF_8));
-        producerRecord.headers().add("ce-time", time.toString().getBytes(StandardCharsets.UTF_8));
-        producerRecord.headers().add("ce-type", "analise.reprovada.v1".getBytes(StandardCharsets.UTF_8));
+        producerRecord.headers().add("ce_specversion", VERSAO_CLOUDEVENTS.getBytes(StandardCharsets.UTF_8));
+        producerRecord.headers().add("ce_source", ORIGEM.getBytes(StandardCharsets.UTF_8));
+        producerRecord.headers().add("ce_time", time.toString().getBytes(StandardCharsets.UTF_8));
+        producerRecord.headers().add("ce_type", "analise.reprovada.v1".getBytes(StandardCharsets.UTF_8));
         producerRecord.headers().add("ce_id", novoEventoId.getBytes(StandardCharsets.UTF_8));
 
         analiseReprovadaEventTemplate.send(producerRecord);

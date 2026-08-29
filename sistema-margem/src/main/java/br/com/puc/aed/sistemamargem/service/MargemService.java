@@ -87,10 +87,10 @@ public class MargemService {
                 event
         );
 
-        recusadaEventProducerRecord.headers().add("ce-specversion", VERSAO_CLOUDEVENTS.getBytes(StandardCharsets.UTF_8));
-        recusadaEventProducerRecord.headers().add("ce-source", ORIGEM.getBytes(StandardCharsets.UTF_8));
-        recusadaEventProducerRecord.headers().add("ce-time", time.toString().getBytes(StandardCharsets.UTF_8));
-        recusadaEventProducerRecord.headers().add("ce-type", "margem.recusada.v1".getBytes(StandardCharsets.UTF_8));
+        recusadaEventProducerRecord.headers().add("ce_specversion", VERSAO_CLOUDEVENTS.getBytes(StandardCharsets.UTF_8));
+        recusadaEventProducerRecord.headers().add("ce_source", ORIGEM.getBytes(StandardCharsets.UTF_8));
+        recusadaEventProducerRecord.headers().add("ce_time", time.toString().getBytes(StandardCharsets.UTF_8));
+        recusadaEventProducerRecord.headers().add("ce_type", "margem.recusada.v1".getBytes(StandardCharsets.UTF_8));
         recusadaEventProducerRecord.headers().add("ce_id", eventoId.getBytes(StandardCharsets.UTF_8));
 
         margemRecusadaEventTemplate.send(recusadaEventProducerRecord);
@@ -106,10 +106,10 @@ public class MargemService {
                 event
         );
 
-        reservadaEventProducerRecord.headers().add("ce-specversion", VERSAO_CLOUDEVENTS.getBytes(StandardCharsets.UTF_8));
-        reservadaEventProducerRecord.headers().add("ce-source", ORIGEM.getBytes(StandardCharsets.UTF_8));
-        reservadaEventProducerRecord.headers().add("ce-time", time.toString().getBytes(StandardCharsets.UTF_8));
-        reservadaEventProducerRecord.headers().add("ce-type", "margem.reservada.v1".getBytes(StandardCharsets.UTF_8));
+        reservadaEventProducerRecord.headers().add("ce_specversion", VERSAO_CLOUDEVENTS.getBytes(StandardCharsets.UTF_8));
+        reservadaEventProducerRecord.headers().add("ce_source", ORIGEM.getBytes(StandardCharsets.UTF_8));
+        reservadaEventProducerRecord.headers().add("ce_time", time.toString().getBytes(StandardCharsets.UTF_8));
+        reservadaEventProducerRecord.headers().add("ce_type", "margem.reservada.v1".getBytes(StandardCharsets.UTF_8));
         reservadaEventProducerRecord.headers().add("ce_id", eventoId.getBytes(StandardCharsets.UTF_8));
 
         margemReservadaEventTemplate.send(reservadaEventProducerRecord);

@@ -4,6 +4,11 @@ import br.com.puc.aed.sistemamargem.domain.EmprestimoSolicitadoEvent;
 import br.com.puc.aed.sistemamargem.domain.MargemRecusadaEvent;
 import br.com.puc.aed.sistemamargem.domain.MargemReservadaEvent;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.TopicPartition;
+import org.springframework.kafka.support.SendResult;
+
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +25,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,6 +48,10 @@ class MargemServiceTest {
                 margemRecusadaEventTemplate, margemReservadaEventTemplate);
         ReflectionTestUtils.setField(service, "margemRecusadaTopic", "margem.recusada.v1");
         ReflectionTestUtils.setField(service, "margemReservadaTopic", "margem.reservada.v1");
+        lenient().when(margemRecusadaEventTemplate.send(org.mockito.ArgumentMatchers.<ProducerRecord<String, MargemRecusadaEvent>>any()))
+                .thenReturn(envioConcluido());
+        lenient().when(margemReservadaEventTemplate.send(org.mockito.ArgumentMatchers.<ProducerRecord<String, MargemReservadaEvent>>any()))
+                .thenReturn(envioConcluido());
     }
 
     @Test
@@ -65,5 +75,10 @@ class MargemServiceTest {
         assertThat(novoEventoId).isNotEqualTo(eventoRecebidoId);
         assertThat(record.value().solicitacaoId()).isEqualTo("emprestimo-1");
         assertThat(record.key()).isEqualTo(event.cpf());
+    }
+
+    private static <T> CompletableFuture<SendResult<String, T>> envioConcluido() {
+        var metadata = new RecordMetadata(new TopicPartition("topico", 0), 0L, 0, 0L, 0, 0);
+        return CompletableFuture.completedFuture(new SendResult<>(null, metadata));
     }
 }

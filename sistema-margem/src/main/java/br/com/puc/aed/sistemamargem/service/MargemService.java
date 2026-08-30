@@ -94,7 +94,7 @@ public class MargemService {
         recusadaEventProducerRecord.headers().add("ce_type", "margem.recusada.v1".getBytes(StandardCharsets.UTF_8));
         recusadaEventProducerRecord.headers().add("ce_id", novoEventoId.getBytes(StandardCharsets.UTF_8));
 
-        margemRecusadaEventTemplate.send(recusadaEventProducerRecord);
+        publicar(margemRecusadaEventTemplate, recusadaEventProducerRecord, "margem.recusada.v1");
     }
 
     private void gerarMargemReservadaEvent(String cpf, String emprestimoId) {
@@ -114,8 +114,22 @@ public class MargemService {
         reservadaEventProducerRecord.headers().add("ce_type", "margem.reservada.v1".getBytes(StandardCharsets.UTF_8));
         reservadaEventProducerRecord.headers().add("ce_id", novoEventoId.getBytes(StandardCharsets.UTF_8));
 
-        margemReservadaEventTemplate.send(reservadaEventProducerRecord);
+        publicar(margemReservadaEventTemplate, reservadaEventProducerRecord, "margem.reservada.v1");
     }
 
+
+
+    private <T> void publicar(KafkaTemplate<String, T> template,
+                              ProducerRecord<String, T> registro,
+                              String tipo) {
+        template.send(registro).whenComplete((resultado, erro) -> {
+            if (erro != null) {
+                log.error("Falha ao publicar {}: {}", tipo, erro.getMessage(), erro);
+                return;
+            }
+            var meta = resultado.getRecordMetadata();
+            log.info("{} publicado em {}-{}@{}", tipo, meta.topic(), meta.partition(), meta.offset());
+        });
+    }
 
 }

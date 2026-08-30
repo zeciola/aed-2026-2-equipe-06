@@ -28,6 +28,12 @@ public class AnaliseListener {
     @KafkaListener(topics = "${sistema-analise.topico.margem-reservada}", groupId = "sistema-analise")
     public void avaliarCredito(ConsumerRecord<String, MargemReservadaEvent> consumerRecord, Acknowledgment ack) {
         var eventoId = obterId(consumerRecord);
+        if (eventoId == null || eventoId.isBlank()) {
+            log.error("Registro sem {} descartado: particao={} offset={}",
+                    CABECALHO_ID, consumerRecord.partition(), consumerRecord.offset());
+            ack.acknowledge();
+            return;
+        }
         analiseService.avaliar(eventoId, consumerRecord.value());
         ack.acknowledge();
     }

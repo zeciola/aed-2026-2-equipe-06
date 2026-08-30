@@ -76,7 +76,7 @@ public class AnaliseService {
         producerRecord.headers().add("ce_type", "analise.aprovada.v1".getBytes(StandardCharsets.UTF_8));
         producerRecord.headers().add("ce_id", novoEventoId.getBytes(StandardCharsets.UTF_8));
 
-        analiseAprovadaEventTemplate.send(producerRecord);
+        publicar(analiseAprovadaEventTemplate, producerRecord, "analise.aprovada.v1");
     }
 
     private void publicarReprovada(String cpf, String solicitacaoId) {
@@ -93,6 +93,20 @@ public class AnaliseService {
         producerRecord.headers().add("ce_type", "analise.reprovada.v1".getBytes(StandardCharsets.UTF_8));
         producerRecord.headers().add("ce_id", novoEventoId.getBytes(StandardCharsets.UTF_8));
 
-        analiseReprovadaEventTemplate.send(producerRecord);
+        publicar(analiseReprovadaEventTemplate, producerRecord, "analise.reprovada.v1");
     }
+
+    private <T> void publicar(KafkaTemplate<String, T> template,
+                              ProducerRecord<String, T> registro,
+                              String tipo) {
+        template.send(registro).whenComplete((resultado, erro) -> {
+            if (erro != null) {
+                log.error("Falha ao publicar {}: {}", tipo, erro.getMessage(), erro);
+                return;
+            }
+            var meta = resultado.getRecordMetadata();
+            log.info("{} publicado em {}-{}@{}", tipo, meta.topic(), meta.partition(), meta.offset());
+        });
+    }
+
 }

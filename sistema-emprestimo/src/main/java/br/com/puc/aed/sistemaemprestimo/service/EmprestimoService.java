@@ -63,6 +63,7 @@ public class EmprestimoService {
                 .whenComplete((records, throwable) -> {
                     if (throwable != null) {
                         log.error("Erro ao publicar evento de empréstimo solicitado: {}", throwable.getMessage(), throwable);
+                        return;
                     }
 
                     log.info("Evento de empréstimo solicitado publicado com sucesso: {}", event);

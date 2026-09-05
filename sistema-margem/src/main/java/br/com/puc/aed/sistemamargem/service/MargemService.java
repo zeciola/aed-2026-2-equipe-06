@@ -27,19 +27,24 @@ public class MargemService {
     private final EventoProcessadoRepository eventoProcessadoRepository;
     private final KafkaTemplate<String, MargemRecusadaEvent> margemRecusadaEventTemplate;
     private final KafkaTemplate<String, MargemReservadaEvent> margemReservadaEventTemplate;
+    private final KafkaTemplate<String, MargemLiberadaEvent> margemLiberadaEventTemplate;
 
     @Value("${sistema-margem.topico.margem-recusada}")
     private String margemRecusadaTopic;
     @Value("${sistema-margem.topico.margem-reservada}")
     private String margemReservadaTopic;
+    @Value("${sistema-margem.topico.margem-liberada:margem.liberada.v1}")
+    private String margemLiberadaTopic;
 
     public MargemService(MargemRepository margemRepository, EventoProcessadoRepository eventoProcessadoRepository,
                          KafkaTemplate<String, MargemRecusadaEvent> margemRecusadaEventTemplate,
-                         KafkaTemplate<String, MargemReservadaEvent> margemReservadaEventTemplate) {
+                         KafkaTemplate<String, MargemReservadaEvent> margemReservadaEventTemplate,
+                         KafkaTemplate<String, MargemLiberadaEvent> margemLiberadaEventTemplate) {
         this.margemRepository = margemRepository;
         this.eventoProcessadoRepository = eventoProcessadoRepository;
         this.margemRecusadaEventTemplate = margemRecusadaEventTemplate;
         this.margemReservadaEventTemplate = margemReservadaEventTemplate;
+        this.margemLiberadaEventTemplate = margemLiberadaEventTemplate;
     }
 
     @Transactional
@@ -115,6 +120,53 @@ public class MargemService {
         reservadaEventProducerRecord.headers().add("ce_id", novoEventoId.getBytes(StandardCharsets.UTF_8));
 
         publicar(margemReservadaEventTemplate, reservadaEventProducerRecord, "margem.reservada.v1");
+    }
+
+    @Transactional
+    public void processarCompensacao(String eventoId, AnaliseReprovadaEvent event) {
+        boolean primeiraVez = eventoProcessadoRepository.registrarSeNovo(eventoId);
+        if (!primeiraVez) {
+            log.warn("Evento de compensação {} já processado, descartando em silêncio", eventoId);
+            return;
+        }
+
+        log.info("Processando compensação (cancelamento de margem) para evento={} cliente={} solicitacao={}",
+                eventoId, event.cpf(), event.solicitacaoId());
+
+        BigDecimal valorEstorno = margemRepository.buscarUltimoDebito(event.cpf())
+                .orElse(BigDecimal.valueOf(100.00));
+
+        var estorno = new Margem(
+                UUID.randomUUID(),
+                event.cpf(),
+                valorEstorno,
+                1,
+                Instant.now(),
+                Margem.Tipo.CREDITO
+        );
+
+        margemRepository.salvar(estorno);
+        gerarMargemLiberadaEvent(event.cpf(), event.solicitacaoId(), event.motivo());
+    }
+
+    private void gerarMargemLiberadaEvent(String cpf, String emprestimoId, String motivo) {
+        var time = Instant.now();
+        var novoEventoId = UUID.randomUUID().toString();
+        var event = new MargemLiberadaEvent(cpf, emprestimoId, motivo);
+
+        ProducerRecord<String, MargemLiberadaEvent> record = new ProducerRecord<>(
+                margemLiberadaTopic,
+                cpf,
+                event
+        );
+
+        record.headers().add("ce_specversion", VERSAO_CLOUDEVENTS.getBytes(StandardCharsets.UTF_8));
+        record.headers().add("ce_source", ORIGEM.getBytes(StandardCharsets.UTF_8));
+        record.headers().add("ce_time", time.toString().getBytes(StandardCharsets.UTF_8));
+        record.headers().add("ce_type", "margem.liberada.v1".getBytes(StandardCharsets.UTF_8));
+        record.headers().add("ce_id", novoEventoId.getBytes(StandardCharsets.UTF_8));
+
+        publicar(margemLiberadaEventTemplate, record, "margem.liberada.v1");
     }
 
 

@@ -40,17 +40,23 @@ class MargemServiceTest {
     @Mock
     private KafkaTemplate<String, MargemReservadaEvent> margemReservadaEventTemplate;
 
+    @Mock
+    private KafkaTemplate<String, MargemLiberadaEvent> margemLiberadaEventTemplate;
+
     private MargemService service;
 
     @BeforeEach
     void montarService() {
         service = new MargemService(margemRepository, eventoProcessadoRepository,
-                margemRecusadaEventTemplate, margemReservadaEventTemplate);
+                margemRecusadaEventTemplate, margemReservadaEventTemplate, margemLiberadaEventTemplate);
         ReflectionTestUtils.setField(service, "margemRecusadaTopic", "margem.recusada.v1");
         ReflectionTestUtils.setField(service, "margemReservadaTopic", "margem.reservada.v1");
+        ReflectionTestUtils.setField(service, "margemLiberadaTopic", "margem.liberada.v1");
         lenient().when(margemRecusadaEventTemplate.send(org.mockito.ArgumentMatchers.<ProducerRecord<String, MargemRecusadaEvent>>any()))
                 .thenReturn(envioConcluido());
         lenient().when(margemReservadaEventTemplate.send(org.mockito.ArgumentMatchers.<ProducerRecord<String, MargemReservadaEvent>>any()))
+                .thenReturn(envioConcluido());
+        lenient().when(margemLiberadaEventTemplate.send(org.mockito.ArgumentMatchers.<ProducerRecord<String, MargemLiberadaEvent>>any()))
                 .thenReturn(envioConcluido());
     }
 
@@ -77,8 +83,40 @@ class MargemServiceTest {
         assertThat(record.key()).isEqualTo(event.cpf());
     }
 
+    @Test
+    void processaCompensacaoEstornandoMargemEPublicandoMargemLiberada() {
+        var eventoRecebidoId = UUID.randomUUID().toString();
+        var event = new br.com.puc.aed.sistemamargem.domain.AnaliseReprovadaEvent(
+                "00000000000", "emprestimo-1", "Score insuficiente");
+
+        when(eventoProcessadoRepository.registrarSeNovo(eventoRecebidoId)).thenReturn(true);
+        when(margemRepository.buscarUltimoDebito("00000000000")).thenReturn(Optional.of(new BigDecimal("150.00")));
+
+        service.processarCompensacao(eventoRecebidoId, event);
+
+        // Verifica que salvou o estorno como CREDITO
+        ArgumentCaptor<br.com.puc.aed.sistemamargem.domain.Margem> margemCaptor =
+                ArgumentCaptor.forClass(br.com.puc.aed.sistemamargem.domain.Margem.class);
+        verify(margemRepository).salvar(margemCaptor.capture());
+        assertThat(margemCaptor.getValue().getTipo()).isEqualTo(br.com.puc.aed.sistemamargem.domain.Margem.Tipo.CREDITO);
+        assertThat(margemCaptor.getValue().getValor()).isEqualTo(new BigDecimal("150.00"));
+
+        // Verifica que publicou MargemLiberadaEvent
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<ProducerRecord<String, MargemLiberadaEvent>> captor =
+                ArgumentCaptor.forClass(ProducerRecord.class);
+        verify(margemLiberadaEventTemplate).send(captor.capture());
+
+        var record = captor.getValue();
+        assertThat(record.topic()).isEqualTo("margem.liberada.v1");
+        assertThat(record.key()).isEqualTo("00000000000");
+        assertThat(record.value().solicitacaoId()).isEqualTo("emprestimo-1");
+        assertThat(record.value().motivo()).isEqualTo("Score insuficiente");
+    }
+
     private static <T> CompletableFuture<SendResult<String, T>> envioConcluido() {
         var metadata = new RecordMetadata(new TopicPartition("topico", 0), 0L, 0, 0L, 0, 0);
         return CompletableFuture.completedFuture(new SendResult<>(null, metadata));
     }
 }
+

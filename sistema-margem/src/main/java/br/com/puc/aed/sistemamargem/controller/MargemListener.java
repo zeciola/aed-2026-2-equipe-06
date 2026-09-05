@@ -25,7 +25,7 @@ public class MargemListener {
         this.margemService = margemService;
     }
 
-    @KafkaListener(topics = "${sistema-margem.topico.empresitmo-solicitado}", groupId = "sistema-margem")
+    @KafkaListener(topics = "${sistema-margem.topico.emprestimo-solicitado}", groupId = "sistema-margem")
     public void verificarMargem(ConsumerRecord<String, EmprestimoSolicitadoEvent> consumerRecord, Acknowledgment ack) {
         var eventoId = obterId(consumerRecord);
         if (eventoId == null || eventoId.isBlank()) {

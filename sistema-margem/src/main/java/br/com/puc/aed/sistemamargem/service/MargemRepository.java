@@ -36,4 +36,15 @@ public class MargemRepository implements br.com.puc.aed.sistemamargem.domain.Mar
                 "SELECT SUM(valor) FROM margem WHERE cpf = ?", BigDecimal.class, cpf);
         return Optional.ofNullable(total);
     }
+
+    @Override
+    public Optional<BigDecimal> buscarUltimoDebito(String cpf) {
+        var debitos = jdbc.query(
+                "SELECT ABS(valor) FROM margem WHERE cpf = ? AND tipo = 'DEBITO' ORDER BY criado_em DESC LIMIT 1",
+                (rs, rowNum) -> rs.getBigDecimal(1),
+                cpf
+        );
+        return debitos.isEmpty() ? Optional.empty() : Optional.of(debitos.get(0));
+    }
 }
+

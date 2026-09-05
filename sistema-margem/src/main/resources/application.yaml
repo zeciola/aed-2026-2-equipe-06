@@ -1,8 +1,10 @@
 sistema-margem:
   topico:
-    empresitmo-solicitado: emprestimo.solicitado.v1
+    emprestimo-solicitado: emprestimo.solicitado.v1
     margem-recusada: margem.recusada.v1
     margem-reservada: margem.reservada.v1
+    analise-reprovada: analise.reprovada.v1
+    margem-liberada: margem.liberada.v1
 
 spring:
   application:

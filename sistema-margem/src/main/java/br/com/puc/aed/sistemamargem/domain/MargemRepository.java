@@ -8,4 +8,7 @@ public interface MargemRepository {
     void salvar(Margem margem);
 
     Optional<BigDecimal> margemAtual(String cpf);
+
+    Optional<BigDecimal> buscarUltimoDebito(String cpf);
 }
+

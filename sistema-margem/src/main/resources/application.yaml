@@ -5,6 +5,10 @@ sistema-margem:
     margem-reservada: margem.reservada.v1
     analise-reprovada: analise.reprovada.v1
     margem-liberada: margem.liberada.v1
+  simulacao:
+    # CPF que sempre falha no MargemListener com erro transitorio de banco, para
+    # demonstrar retry + DLQ (request/cpf_banco_indisponivel.json). Vazio desliga.
+    cpf-banco-indisponivel: "55555555555"
 
 spring:
   application:

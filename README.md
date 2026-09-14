@@ -103,6 +103,24 @@ cd request
 ./make_request.sh cpf_analise_aprovada.json         # fluxo feliz: margem ok, análise de crédito aprova
 ./make_request.sh cpf_margem_insuficiente.json      # recusado por margem insuficiente
 ./make_request.sh cpf_analise_reprovada.json        # margem ok, análise de crédito reprova
+./make_request.sh cpf_banco_indisponivel.json       # simula banco fora no sistema-margem: retry e DLQ
+```
+
+O `cpf_banco_indisponivel.json` usa o CPF configurado em `sistema-margem.simulacao.cpf-banco-indisponivel`.
+O `MargemListener` sempre lança um erro transitório de banco para ele, então o evento passa pelas 9
+tentativas (backoff 1s, 2s, 4s, 8s, 16s, 30s, 30s, 30s) e, depois de ~2 minutos, é publicado em
+`emprestimo.solicitado.v1.dlq`. Acompanhe com `docker compose logs -f --tail 50 sistema-margem`
+e veja a mensagem no tópico `.dlq` pelo Kafka UI.
+
+Para o cenário de JSON malformado, a API não serve (ela sempre gera JSON válido): publique direto no
+tópico o `emprestimo_solicitado_malformado.txt`. Cada linha é `ce_id:<id><TAB><cpf><TAB><json>`, com um
+caso de sintaxe quebrada e outro de tipo inválido. Os dois vão direto para `emprestimo.solicitado.v1.dlq`,
+sem retentativa, com os bytes originais:
+
+```bash
+docker exec -i kafka kafka-console-producer --bootstrap-server localhost:29092 \
+  --topic emprestimo.solicitado.v1 --property parse.headers=true --property parse.key=true \
+  < emprestimo_solicitado_malformado.txt
 ```
 
 A API responde `202 Accepted` na hora — o resultado (margem reservada/recusada, crédito

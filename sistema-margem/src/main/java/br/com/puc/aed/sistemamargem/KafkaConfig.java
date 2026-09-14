@@ -90,9 +90,7 @@ public class KafkaConfig {
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(templates,
                 (record, ex) -> new TopicPartition(record.topic() + ".dlq", record.partition()));
 
-        // 1s, 2s, 4s, 8s, 16s e depois 30s ate 8 retentativas: ~2min de espera somada ao
-        // connection-timeout do Hikari (5s por tentativa) antes de desistir e ir para a DLQ.
-        ExponentialBackOffWithMaxRetries backOff = new ExponentialBackOffWithMaxRetries(8);
+        ExponentialBackOffWithMaxRetries backOff = new ExponentialBackOffWithMaxRetries(3);
         backOff.setInitialInterval(1_000L);
         backOff.setMultiplier(2.0);
         backOff.setMaxInterval(30_000L);

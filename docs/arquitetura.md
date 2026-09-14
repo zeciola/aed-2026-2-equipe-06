@@ -169,6 +169,7 @@ Os três serviços declaram um `CommonErrorHandler` (`DefaultErrorHandler`) em s
   - **Desserialização:** os consumidores usam `ErrorHandlingDeserializer` delegando ao `JacksonJsonDeserializer`. Um JSON malformado não trava mais a partição: a `DeserializationException` é entregue ao error handler e os registros seguintes continuam sendo consumidos. No `sistema-margem` e no `sistema-analise` o registro vai para a DLQ com os **bytes originais** (template dedicado com `ByteArraySerializer`); no `sistema-emprestimo` é logado e descartado.
   - `IllegalArgumentException`, `SerializationException` e as exceções não retentáveis padrão do Spring Kafka (`DeserializationException`, `MessageConversionException`, `ClassCastException`, entre outras).
 - **Registro sem `ce_id`:** descartado pelo listener com log `ERROR` e offset confirmado, sem passar pela DLQ.
+- **Simulação de falha transitória:** para o CPF definido em `sistema-margem.simulacao.cpf-banco-indisponivel` (padrão `55555555555`, vazio desliga), o `MargemListener` sempre lança `TransientDataAccessResourceException`. O evento esgota as retentativas (~2 min) e vai para `emprestimo.solicitado.v1.dlq`. Disparo: `request/cpf_banco_indisponivel.json`.
 - O `DeadLetterPublishingRecoverer` preserva os cabeçalhos CloudEvents originais (`ce_*`) e anexa os metadados de diagnóstico (`kafka_dlt-exception-fqcn`, `kafka_dlt-exception-cause-fqcn`, `kafka_dlt-exception-message`, `kafka_dlt-exception-stacktrace`, `kafka_dlt-original-*`).
 
 ### 5.3 Limitações Conhecidas

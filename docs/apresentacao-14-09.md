@@ -10,7 +10,7 @@
 
 | Momento | Tempo | Quem fala | Conteúdo |
 |---|---|---|---|
-| **1. O Domínio e o Problema** | 0:00 - 1:30 (1m30s) | **Henrique Miguel** | O que é a CredFolha, por que empréstimo consignado exige consistência eventual e os 3 serviços autônomos. |
+| **1. O Domínio e o Problema** | 0:00 - 1:30 (1m30s) | **Paulo Henrique** | O que é a CredFolha, por que empréstimo consignado exige consistência eventual e os 3 serviços autônomos. |
 | **2. O Modelo de Eventos e Contratos** | 1:30 - 3:30 (2m00s) | **Natan de Almeida** | Envelope CloudEvents 1.0 (`ce_*`), ordenação por partição com chave no CPF e os contratos no Kafka. |
 | **3. Demonstração Prática ao Vivo** | 3:30 - 6:30 (3m00s) | **Gabriel Moreira** | Execução do fluxo feliz e do fluxo de exceção com compensação (Saga em ação no terminal/Kafka UI). |
 | **4. A Decisão que Mais Custou** | 6:30 - 8:30 (2m00s) | **Diego Bruno** | Coreografia vs Orquestração (ADR-006), o desafio de não ter ponto central e como tratamos margem presa/DLQ. |

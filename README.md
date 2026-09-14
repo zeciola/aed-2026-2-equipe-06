@@ -96,13 +96,12 @@ cd sistema-analise && ./mvnw spring-boot:run      # consumidor idempotente (sem 
 
 ### 3. Disparar uma solicitação de empréstimo
 
-Requisições de exemplo já prontas em [`sistema-emprestimo/request/`](sistema-emprestimo/request/):
+Requisições de exemplo já prontas em [`request/`](request/):
 
 ```bash
-cd sistema-emprestimo/request
-./make_request.sh emprestimo.json                  # fluxo feliz
+cd request
+./make_request.sh cpf_analise_aprovada.json         # fluxo feliz: margem ok, análise de crédito aprova
 ./make_request.sh cpf_margem_insuficiente.json      # recusado por margem insuficiente
-./make_request.sh cpf_analise_aprovada.json         # margem ok, análise de crédito aprova
 ./make_request.sh cpf_analise_reprovada.json        # margem ok, análise de crédito reprova
 ```
 

@@ -1,3 +1,8 @@
+CREATE TABLE IF NOT EXISTS evento_processado_emprestimo (
+    evento_id     VARCHAR(64) PRIMARY KEY,
+    processado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS emprestimo (
     id UUID PRIMARY KEY,
     cpf VARCHAR(11) NOT NULL,

@@ -1,0 +1,2 @@
+ce_id:malformado-sintaxe-001	12345678900	{"emprestimoId":"malformado-sintaxe-001","cpf":"12345678900","valorParcela":150.00,"codigoVerba":700
+ce_id:malformado-tipo-001	12345678900	{"emprestimoId":"malformado-tipo-001","cpf":"12345678900","valorParcela":"cento e cinquenta","codigoVerba":700}

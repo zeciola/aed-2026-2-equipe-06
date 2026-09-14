@@ -26,8 +26,11 @@ spring:
       auto-offset-reset: earliest
       enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      # Captura falha de desserializacao e entrega ao error handler (vai para a DLQ)
+      # em vez de travar a particao repetindo o mesmo registro para sempre.
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
         spring.json.use.type.headers: false
         spring.json.value.default.type: br.com.puc.aed.sistemaanalise.domain.MargemReservadaEvent
         spring.json.trusted.packages: br.com.puc.aed.sistemaanalise.domain
@@ -40,6 +43,8 @@ spring:
     url: jdbc:postgresql://localhost:15430/aed
     password: postgres
     username: postgres
+    hikari:
+      connection-timeout: 5000        # falha rapido quando o banco cai; o retry do Kafka espera o banco voltar
 
   sql:
     init:

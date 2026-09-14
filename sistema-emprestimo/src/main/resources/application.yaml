@@ -2,6 +2,7 @@ sistema-emprestimo:
   topicos:
     emprestimo-solicitado: emprestimo.solicitado.v1
     margem-recusada: margem.recusada.v1
+    analise-aprovada: analise.aprovada.v1
 
 spring:
   application:

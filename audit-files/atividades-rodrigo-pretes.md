@@ -39,7 +39,7 @@ Substituir o conteudo de `docs/entregas/aula-02.md` por:
     cd sistema-emprestimo && ./mvnw spring-boot:run   # em um terminal
     cd sistema-margem     && ./mvnw spring-boot:run   # em outro
     cd sistema-analise    && ./mvnw spring-boot:run   # em outro
-    cd sistema-emprestimo/request && ./make_request.sh emprestimo.json
+    cd request && ./make_request.sh cpf_analise_aprovada.json
 
 ## Quem fez o que
 

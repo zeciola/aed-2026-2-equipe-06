@@ -1,6 +1,8 @@
 sistema-emprestimo:
   topicos:
     emprestimo-solicitado: emprestimo.solicitado.v1
+    margem-recusada: margem.recusada.v1
+    analise-aprovada: analise.aprovada.v1
 
 spring:
   application:
@@ -18,6 +20,23 @@ spring:
         # empurrando um detalhe INTERNO deste servico para dentro do contrato —
         # e o consumidor, que tem a classe dele, nao saberia o que fazer com isso.
         spring.json.add.type.headers: false
+
+    consumer:
+      group-id: sistema-emprestimo
+      auto-offset-reset: earliest
+      enable-auto-commit: false       # quem confirma o offset e o nosso codigo
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        # Ignora o cabecalho de tipo do produtor: a classe usada e a deste servico.
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: br.com.puc.aed.sistemaemprestimo.domain.MargemRecusadaEvent
+        spring.json.trusted.packages: br.com.puc.aed.sistemaemprestimo.domain
+        metadata.max.age.ms: 5000
+
+    listener:
+      ack-mode: manual_immediate      # o ack e explicito, depois do commit
+
   datasource:
     url: jdbc:postgresql://localhost:15430/aed
     password: postgres

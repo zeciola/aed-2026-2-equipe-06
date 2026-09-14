@@ -33,11 +33,33 @@ Em Codespace antigo, sem rebuild: `sdk use java 21.0.10-ms`.
 ### Modo rápido — tudo de uma vez
 
 ```bash
-docker compose -f compose.yml -f compose.services.yml up -d --build
+docker compose --profile domain up -d --build
 ```
 
 Sobe infraestrutura (Kafka, Postgres, Kafka UI) e os três serviços Java em containers.
 Útil para testar o fluxo completo ou avaliar o projeto sem abrir vários terminais.
+Os serviços Java ficam no profile `domain` do `compose.yml`; sem `--profile domain`,
+só a infraestrutura sobe.
+
+Comandos úteis:
+
+```bash
+docker compose --profile domain ps                              # estado dos containers
+docker compose --profile domain up -d --build sistema-margem    # rebuild de um serviço só
+docker compose --profile domain down                            # derruba tudo (-v apaga os volumes)
+```
+
+Logs de cada serviço de domínio (um por terminal; `Ctrl+C` sai sem parar o container):
+
+```bash
+docker compose logs -f --tail 50 sistema-emprestimo
+```
+```bash
+docker compose logs -f --tail 50 sistema-margem
+```
+```bash
+docker compose logs -f --tail 50 sistema-analise
+```
 
 ### Modo desenvolvimento — serviços locais
 
@@ -51,6 +73,14 @@ docker compose up -d
 
 Sobe Kafka (porta `19093`), Postgres (porta `15430`, banco `aed`) e o Kafka UI
 (`http://localhost:8089`, pra inspecionar tópicos e mensagens pelo navegador).
+Os serviços Java não sobem aqui porque estão no profile `domain`.
+
+Se os containers dos serviços estiverem rodando de um "modo rápido" anterior, pare-os
+antes, senão disputam a porta `8080` e os consumer groups do Kafka:
+
+```bash
+docker compose stop sistema-emprestimo sistema-margem sistema-analise
+```
 
 **2. Subir os três serviços** (cada um em um terminal):
 
@@ -66,13 +96,12 @@ cd sistema-analise && ./mvnw spring-boot:run      # consumidor idempotente (sem 
 
 ### 3. Disparar uma solicitação de empréstimo
 
-Requisições de exemplo já prontas em [`sistema-emprestimo/request/`](sistema-emprestimo/request/):
+Requisições de exemplo já prontas em [`request/`](request/):
 
 ```bash
-cd sistema-emprestimo/request
-./make_request.sh emprestimo.json                  # fluxo feliz
+cd request
+./make_request.sh cpf_analise_aprovada.json         # fluxo feliz: margem ok, análise de crédito aprova
 ./make_request.sh cpf_margem_insuficiente.json      # recusado por margem insuficiente
-./make_request.sh cpf_analise_aprovada.json         # margem ok, análise de crédito aprova
 ./make_request.sh cpf_analise_reprovada.json        # margem ok, análise de crédito reprova
 ```
 

@@ -1,6 +1,7 @@
 package br.com.puc.aed.sistemamargem.service;
 
 import br.com.puc.aed.sistemamargem.domain.EmprestimoSolicitadoEvent;
+import br.com.puc.aed.sistemamargem.domain.MargemLiberadaEvent;
 import br.com.puc.aed.sistemamargem.domain.MargemRecusadaEvent;
 import br.com.puc.aed.sistemamargem.domain.MargemReservadaEvent;
 import org.apache.kafka.clients.producer.ProducerRecord;

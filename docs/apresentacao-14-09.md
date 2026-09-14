@@ -39,7 +39,7 @@
 * **Ações no terminal:**
   1. Disparar a requisição de exemplo:
      ```bash
-     cd sistema-emprestimo/request && ./make_request.sh cpf_analise_reprovada.json
+     cd request && ./make_request.sh cpf_analise_reprovada.json
      ```
   2. Mostrar no log do `sistema-emprestimo`: `HTTP 202 Accepted` e publicação de `emprestimo.solicitado.v1`.
   3. Mostrar no log do `sistema-margem`: consumo idempotente, débito gravado e emissão de `margem.reservada.v1`.

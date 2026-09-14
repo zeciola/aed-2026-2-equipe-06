@@ -28,18 +28,24 @@ public final class EmprestimoSolicitadoEvent {
         this.codigoVerba = codigoVerba;
     }
 
+    // @JsonProperty nos acessores: sem getters no padrao JavaBean, o Jackson nao enxerga
+    // nenhuma propriedade e serializa o evento como {} (ex.: ao republicar na DLQ).
+    @JsonProperty("emprestimoId")
     public String emprestimoId() {
         return emprestimoId;
     }
 
+    @JsonProperty("cpf")
     public String cpf() {
         return cpf;
     }
 
+    @JsonProperty("valorParcela")
     public BigDecimal valorParcela() {
         return valorParcela;
     }
 
+    @JsonProperty("codigoVerba")
     public Integer codigoVerba() {
         return codigoVerba;
     }

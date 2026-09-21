@@ -65,9 +65,9 @@ class MargemServiceTest {
     void publicaReservaComNovoEventoIdEPreservaEmprestimoId() {
         var eventoRecebidoId = UUID.randomUUID().toString();
         var event = new EmprestimoSolicitadoEvent(
-                "emprestimo-1", "00000000000", new BigDecimal("100.00"), 500);
+                "emprestimo-1", "00000000000", new BigDecimal("100.00"), 600);
         when(eventoProcessadoRepository.registrarSeNovo(eventoRecebidoId)).thenReturn(true);
-        when(margemRepository.margemAtual(event.cpf())).thenReturn(Optional.of(BigDecimal.ZERO));
+        when(margemRepository.margemAtual(event.cpf())).thenReturn(Optional.of(new BigDecimal("200.00")));
 
         service.processarSolicitacaoEmprestimo(eventoRecebidoId, event);
 
@@ -82,6 +82,29 @@ class MargemServiceTest {
         assertThat(novoEventoId).isNotEqualTo(eventoRecebidoId);
         assertThat(record.value().emprestimoId()).isEqualTo("emprestimo-1");
         assertThat(record.key()).isEqualTo(event.cpf());
+    }
+
+    @Test
+    void recusaSolicitacaoComCodigoDeVerbaForaDaListaDeDebito() {
+        var eventoRecebidoId = UUID.randomUUID().toString();
+        var event = new EmprestimoSolicitadoEvent(
+                "emprestimo-2", "00000000000", new BigDecimal("100.00"), 999);
+        when(eventoProcessadoRepository.registrarSeNovo(eventoRecebidoId)).thenReturn(true);
+
+        service.processarSolicitacaoEmprestimo(eventoRecebidoId, event);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<ProducerRecord<String, MargemRecusadaEvent>> captor =
+                ArgumentCaptor.forClass(ProducerRecord.class);
+        verify(margemRecusadaEventTemplate).send(captor.capture());
+
+        var record = captor.getValue();
+        assertThat(record.value().solicitacaoId()).isEqualTo("emprestimo-2");
+        assertThat(record.value().motivo()).isEqualTo("Codigo de verba nao permitido");
+
+        verify(margemRepository, org.mockito.Mockito.never()).salvar(org.mockito.ArgumentMatchers.any());
+        verify(margemReservadaEventTemplate, org.mockito.Mockito.never())
+                .send(org.mockito.ArgumentMatchers.<ProducerRecord<String, MargemReservadaEvent>>any());
     }
 
     @Test

@@ -5,11 +5,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public final class MargemReservadaEvent {
 
     private final String cpf;
-    private final String solicitacaoId;
+    private final String emprestimoId;
 
-    public MargemReservadaEvent(String cpf, String solicitacaoId) {
+    public MargemReservadaEvent(String cpf, String emprestimoId) {
         this.cpf = cpf;
-        this.solicitacaoId = solicitacaoId;
+        this.emprestimoId = emprestimoId;
     }
 
     @JsonProperty("cpf")
@@ -17,13 +17,13 @@ public final class MargemReservadaEvent {
         return cpf;
     }
 
-    @JsonProperty("solicitacaoId")
-    public String solicitacaoId() {
-        return solicitacaoId;
+    @JsonProperty("emprestimoId")
+    public String emprestimoId() {
+        return emprestimoId;
     }
 
     @Override
     public String toString() {
-        return "MargemReservadaEvent{cpf='" + cpf + "', solicitacaoId='" + solicitacaoId + "'}";
+        return "MargemReservadaEvent{cpf='" + cpf + "', emprestimoId='" + emprestimoId + "'}";
     }
 }

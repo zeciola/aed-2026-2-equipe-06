@@ -80,7 +80,7 @@ class MargemServiceTest {
         var novoEventoId = new String(record.headers().lastHeader("ce_id").value(), StandardCharsets.UTF_8);
         assertThat(UUID.fromString(novoEventoId)).isNotNull();
         assertThat(novoEventoId).isNotEqualTo(eventoRecebidoId);
-        assertThat(record.value().solicitacaoId()).isEqualTo("emprestimo-1");
+        assertThat(record.value().emprestimoId()).isEqualTo("emprestimo-1");
         assertThat(record.key()).isEqualTo(event.cpf());
     }
 

@@ -88,7 +88,11 @@ Para derrubar: `make down` (ou `make down-clean` para apagar volumes).
 ## Demo
 
 O script `scripts/demo.sh` percorre todos os cenários com pausas explicativas.
-A demonstração do funcionamento foi gravada com [asciinema](https://asciinema.org/).
+A demonstração do funcionamento foi gravada com [asciinema](https://asciinema.org/):
+
+[![asciicast](https://asciinema.org/a/ISvVjSnWQkrIfkVZ.svg)](https://asciinema.org/a/ISvVjSnWQkrIfkVZ)
+
+Para rodar localmente:
 
 ```bash
 make up-all      # se ainda não estiver rodando

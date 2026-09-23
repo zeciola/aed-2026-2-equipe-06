@@ -3,140 +3,139 @@ SHELL := /bin/bash
 
 COMPOSE := docker compose
 PROFILE := --profile domain
+WAIT    := 5
+
+# ──────────────────────────────────────────────
+#  Tudo de uma vez
+# ──────────────────────────────────────────────
+
+.PHONY: all
+all: up-all wait-ready validate ## Sobe tudo, espera e valida os 4 cenários
+
+.PHONY: wait-ready
+wait-ready:
+	@echo "⏳ Aguardando serviços ficarem prontos..."
+	@for i in $$(seq 1 60); do \
+	  code=$$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/emprestimos/solicitar 2>/dev/null); \
+	  if [ "$$code" = "405" ] || [ "$$code" = "400" ] || [ "$$code" = "200" ] || [ "$$code" = "202" ]; then \
+	    echo "✔ sistema-emprestimo respondendo (HTTP $$code)"; break; \
+	  fi; \
+	  sleep 2; \
+	done
+
+.PHONY: validate
+validate: ## Dispara os 4 cenários e mostra resultado no banco
+	@echo ""
+	@echo "━━━ 1/4  Fluxo feliz (aprovação) ━━━"
+	@cd request && ./make_request.sh cpf_analise_aprovada.json
+	@sleep $(WAIT)
+	@docker exec postgres psql -U postgres -d aed -c \
+	  "SELECT cpf, valor, tipo FROM margem ORDER BY criado_em DESC LIMIT 3;"
+	@echo ""
+	@echo "━━━ 2/4  Saga — reprovação + compensação ━━━"
+	@cd request && ./make_request.sh cpf_analise_reprovada.json
+	@sleep $(WAIT)
+	@docker exec postgres psql -U postgres -d aed -c \
+	  "SELECT cpf, valor, tipo FROM margem WHERE cpf = '33333333333' ORDER BY criado_em;"
+	@echo ""
+	@echo "━━━ 3/4  Margem insuficiente ━━━"
+	@cd request && ./make_request.sh cpf_margem_insuficiente.json
+	@sleep 3
+	@echo ""
+	@echo "━━━ 4/4  JSON malformado → DLQ ━━━"
+	@docker exec -i kafka kafka-console-producer --bootstrap-server localhost:29092 \
+	  --topic emprestimo.solicitado.v1 --property parse.headers=true --property parse.key=true \
+	  < request/emprestimo_solicitado_malformado.txt
+	@sleep 2
+	@echo ""
+	@echo "━━━ Resumo: saldo de margem por CPF ━━━"
+	@docker exec postgres psql -U postgres -d aed -c \
+	  "SELECT cpf, SUM(valor) AS saldo, COUNT(*) AS lancamentos FROM margem GROUP BY cpf ORDER BY cpf;"
+	@echo ""
+	@echo "✔ Validação concluída. Kafka UI: http://localhost:8089"
 
 # ──────────────────────────────────────────────
 #  Infraestrutura
 # ──────────────────────────────────────────────
 
 .PHONY: up
-up: ## Sobe infraestrutura (Kafka, Postgres, Kafka UI)
+up: ## Sobe só infraestrutura (Kafka, Postgres, Kafka UI)
 	$(COMPOSE) up -d
 
 .PHONY: up-all
-up-all: ## Sobe infraestrutura + os 3 serviços Java em containers
+up-all: ## Sobe infraestrutura + os 3 serviços Java
 	$(COMPOSE) $(PROFILE) up -d --build
 
 .PHONY: down
-down: ## Derruba tudo (containers e rede)
+down: ## Derruba tudo
 	$(COMPOSE) $(PROFILE) down
 
 .PHONY: down-clean
-down-clean: ## Derruba tudo e apaga volumes (banco e kafka)
+down-clean: ## Derruba tudo e apaga volumes
 	$(COMPOSE) $(PROFILE) down -v
 
 .PHONY: ps
-ps: ## Mostra estado dos containers
+ps: ## Estado dos containers
 	$(COMPOSE) $(PROFILE) ps
 
 .PHONY: rebuild
-rebuild: ## Rebuild e restart dos 3 serviços Java (infra mantida)
+rebuild: ## Rebuild dos serviços Java (infra mantida)
 	$(COMPOSE) $(PROFILE) up -d --build sistema-emprestimo sistema-margem sistema-analise
 
 # ──────────────────────────────────────────────
-#  Logs
+#  Logs e banco
 # ──────────────────────────────────────────────
-
-.PHONY: logs-emprestimo
-logs-emprestimo: ## Logs do sistema-emprestimo (Ctrl+C sai)
-	$(COMPOSE) logs -f --tail 50 sistema-emprestimo
-
-.PHONY: logs-margem
-logs-margem: ## Logs do sistema-margem (Ctrl+C sai)
-	$(COMPOSE) logs -f --tail 50 sistema-margem
-
-.PHONY: logs-analise
-logs-analise: ## Logs do sistema-analise (Ctrl+C sai)
-	$(COMPOSE) logs -f --tail 50 sistema-analise
 
 .PHONY: logs
-logs: ## Logs de todos os serviços de domínio (Ctrl+C sai)
+logs: ## Logs dos 3 serviços (Ctrl+C sai)
 	$(COMPOSE) logs -f --tail 50 sistema-emprestimo sistema-margem sistema-analise
 
+.PHONY: db
+db: ## Saldo de margem por CPF + últimos lançamentos
+	@docker exec postgres psql -U postgres -d aed -c \
+	  "SELECT cpf, SUM(valor) AS saldo, COUNT(*) AS lancamentos FROM margem GROUP BY cpf ORDER BY cpf;"
+	@docker exec postgres psql -U postgres -d aed -c \
+	  "SELECT cpf, valor, tipo, criado_em FROM margem ORDER BY criado_em DESC LIMIT 10;"
+
 # ──────────────────────────────────────────────
-#  Cenários de teste
+#  Cenários individuais
 # ──────────────────────────────────────────────
 
 .PHONY: test-aprovado
-test-aprovado: ## Fluxo feliz: margem ok, análise de crédito aprova
-	@echo "━━━ Cenário: análise APROVADA (CPF 44444444444, dígito par) ━━━"
+test-aprovado: ## Fluxo feliz: análise aprova
 	@cd request && ./make_request.sh cpf_analise_aprovada.json
 
 .PHONY: test-reprovado
-test-reprovado: ## Margem ok, análise reprova → compensação (Saga)
-	@echo "━━━ Cenário: análise REPROVADA + compensação (CPF 33333333333, dígito ímpar) ━━━"
+test-reprovado: ## Análise reprova → compensação (Saga)
 	@cd request && ./make_request.sh cpf_analise_reprovada.json
 
 .PHONY: test-margem
-test-margem: ## Margem insuficiente → recusada sem análise
-	@echo "━━━ Cenário: margem INSUFICIENTE (CPF 92312348312) ━━━"
+test-margem: ## Margem insuficiente
 	@cd request && ./make_request.sh cpf_margem_insuficiente.json
 
 .PHONY: test-dlq
-test-dlq: ## Falha transitória → retentativas → DLQ (~2 min)
-	@echo "━━━ Cenário: banco INDISPONÍVEL → 9 tentativas → DLQ (CPF 55555555555) ━━━"
-	@echo "Acompanhe com: make logs-margem"
+test-dlq: ## Falha transitória → DLQ (~2 min)
 	@cd request && ./make_request.sh cpf_banco_indisponivel.json
 
 .PHONY: test-malformado
-test-malformado: ## JSON malformado direto no tópico → DLQ sem retentativa
-	@echo "━━━ Cenário: JSON MALFORMADO → DLQ imediata (sem retentativa) ━━━"
-	docker exec -i kafka kafka-console-producer --bootstrap-server localhost:29092 \
+test-malformado: ## JSON malformado → DLQ imediata
+	@docker exec -i kafka kafka-console-producer --bootstrap-server localhost:29092 \
 	  --topic emprestimo.solicitado.v1 --property parse.headers=true --property parse.key=true \
 	  < request/emprestimo_solicitado_malformado.txt
-	@echo "Verifique no Kafka UI: http://localhost:8089 → emprestimo.solicitado.v1.dlq"
 
 # ──────────────────────────────────────────────
-#  Consultas no banco
-# ──────────────────────────────────────────────
-
-.PHONY: db-emprestimo
-db-emprestimo: ## Últimos 10 empréstimos
-	docker exec postgres psql -U postgres -d aed -c \
-	  "SELECT * FROM emprestimo ORDER BY data_emprestimo DESC LIMIT 10;"
-
-.PHONY: db-margem
-db-margem: ## Últimos 10 lançamentos de margem (débitos e créditos)
-	docker exec postgres psql -U postgres -d aed -c \
-	  "SELECT * FROM margem ORDER BY criado_em DESC LIMIT 10;"
-
-.PHONY: db-analise
-db-analise: ## Últimas 10 análises de crédito
-	docker exec postgres psql -U postgres -d aed -c \
-	  "SELECT * FROM analise ORDER BY criado_em DESC LIMIT 10;"
-
-.PHONY: db-saldo
-db-saldo: ## Saldo de margem por CPF (débitos - créditos)
-	docker exec postgres psql -U postgres -d aed -c \
-	  "SELECT cpf, SUM(valor) AS saldo_margem, COUNT(*) AS lancamentos FROM margem GROUP BY cpf ORDER BY cpf;"
-
-# ──────────────────────────────────────────────
-#  Testes unitários
+#  Testes unitários e demo
 # ──────────────────────────────────────────────
 
 .PHONY: test
-test: ## Roda testes dos 3 serviços (sem Docker, precisa de Java 21)
+test: ## Testes unitários (precisa de Java 21)
 	cd sistema-emprestimo && ./mvnw -q test
 	cd sistema-margem && ./mvnw -q test
 	cd sistema-analise && ./mvnw -q test
 
-# ──────────────────────────────────────────────
-#  Demo com asciinema
-# ──────────────────────────────────────────────
-
 .PHONY: demo
-demo: ## Roda a demo completa com pausas (requer serviços rodando)
+demo: ## Demo completa com pausas (requer serviços rodando)
 	@./scripts/demo.sh
-
-.PHONY: demo-record
-demo-record: ## Grava a demo com asciinema (gera demo.cast)
-	asciinema rec --title "CredFolha — Demo completa" \
-	  --idle-time-limit 3 \
-	  -c "make demo" \
-	  demo.cast
-
-.PHONY: demo-play
-demo-play: ## Reproduz a gravação da demo
-	asciinema play demo.cast
 
 # ──────────────────────────────────────────────
 #  Help

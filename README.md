@@ -28,48 +28,54 @@ análise reprova. Detalhes em [docs/adr/ADR-002-dominio-do-projeto.md](docs/adr/
 
 ## Pré-requisitos
 
-- Java 21
 - Docker e Docker Compose
-- [asciinema](https://asciinema.org/) (opcional, para gravar a demo)
 - GNU Make
+- Java 21 (apenas para desenvolvimento local e testes unitários)
 
 No GitHub Codespaces o ambiente já vem pronto (ver `.devcontainer/`).
 
-## Quick start
+## Subir e validar — um único comando
 
 ```bash
-make up-all        # sobe Kafka, Postgres, Kafka UI e os 3 serviços Java
-make test-aprovado # dispara o fluxo feliz
-make db-margem     # verifica o resultado no banco
+make all
 ```
+
+Esse target faz tudo automaticamente:
+
+1. **Build** dos 3 serviços Java em containers Docker (multi-stage)
+2. **Sobe** Kafka, Postgres, Kafka UI e os 3 serviços
+3. **Aguarda** os healthchecks e o Spring Boot ficar pronto
+4. **Dispara** os 4 cenários de teste e exibe os resultados no banco
+
+Ao final, o terminal mostra o saldo de margem por CPF e a validação está concluída.
+O Kafka UI fica disponível em `http://localhost:8089` para inspecionar tópicos e mensagens.
 
 Para derrubar: `make down` (ou `make down-clean` para apagar volumes).
 
-## Comandos disponíveis
+## Todos os comandos
 
-`make` sem argumentos mostra a ajuda completa. Resumo:
+`make` sem argumentos mostra a ajuda:
 
-### Infraestrutura
+```
+  all                Sobe tudo, espera e valida os 4 cenários
+  up                 Sobe só infraestrutura (Kafka, Postgres, Kafka UI)
+  up-all             Sobe infraestrutura + os 3 serviços Java
+  down               Derruba tudo
+  down-clean         Derruba tudo e apaga volumes
+  ps                 Estado dos containers
+  rebuild            Rebuild dos serviços Java (infra mantida)
+  logs               Logs dos 3 serviços (Ctrl+C sai)
+  db                 Saldo de margem por CPF + últimos lançamentos
+  test-aprovado      Fluxo feliz: análise aprova
+  test-reprovado     Análise reprova → compensação (Saga)
+  test-margem        Margem insuficiente
+  test-dlq           Falha transitória → DLQ (~2 min)
+  test-malformado    JSON malformado → DLQ imediata
+  test               Testes unitários (precisa de Java 21)
+  demo               Demo completa com pausas (requer serviços rodando)
+```
 
-| Comando | O que faz |
-|---|---|
-| `make up` | Sobe infraestrutura (Kafka, Postgres, Kafka UI) |
-| `make up-all` | Sobe infraestrutura + os 3 serviços Java em containers |
-| `make down` | Derruba tudo |
-| `make down-clean` | Derruba tudo e apaga volumes (banco e Kafka) |
-| `make ps` | Estado dos containers |
-| `make rebuild` | Rebuild e restart dos serviços Java (infra mantida) |
-
-### Logs
-
-| Comando | O que faz |
-|---|---|
-| `make logs` | Todos os serviços de domínio |
-| `make logs-emprestimo` | Apenas sistema-emprestimo |
-| `make logs-margem` | Apenas sistema-margem |
-| `make logs-analise` | Apenas sistema-analise |
-
-### Cenários de teste
+## Cenários de teste
 
 | Comando | Cenário | O que demonstra |
 |---|---|---|
@@ -79,42 +85,19 @@ Para derrubar: `make down` (ou `make down-clean` para apagar volumes).
 | `make test-dlq` | Banco indisponível simulado | **DLQ**: 9 tentativas com backoff → DLQ (~2 min) |
 | `make test-malformado` | JSON inválido no tópico | DLQ imediata, sem retentativa |
 
-### Consultas no banco
+## Demo
 
-| Comando | O que mostra |
-|---|---|
-| `make db-emprestimo` | Últimos empréstimos |
-| `make db-margem` | Últimos lançamentos (débitos e créditos) |
-| `make db-analise` | Últimas análises de crédito |
-| `make db-saldo` | Saldo de margem por CPF |
-
-### Testes unitários
+O script `scripts/demo.sh` percorre todos os cenários com pausas explicativas.
+A demonstração do funcionamento foi gravada com [asciinema](https://asciinema.org/).
 
 ```bash
-make test    # roda os testes dos 3 serviços (precisa de Java 21, sem Docker)
+make up-all      # se ainda não estiver rodando
+make demo        # executa a demo completa
 ```
-
-## Demo gravada com asciinema
-
-O script `scripts/demo.sh` percorre todos os cenários com pausas e explicações.
-
-```bash
-# Rodar interativamente (requer make up-all antes)
-make demo
-
-# Gravar com asciinema (gera demo.cast)
-make demo-record
-
-# Reproduzir a gravação
-make demo-play
-```
-
-A gravação pode ser compartilhada com `asciinema upload demo.cast` ou embedada
-no README com o player web.
 
 ## Modo desenvolvimento (serviços locais)
 
-Para ciclo rápido de edição, suba só a infraestrutura e rode os serviços localmente:
+Para editar código com ciclo rápido:
 
 ```bash
 make up    # sobe só Kafka, Postgres e Kafka UI
@@ -125,38 +108,7 @@ cd sistema-margem && ./mvnw spring-boot:run
 cd sistema-analise && ./mvnw spring-boot:run
 ```
 
-Os `make test-*` funcionam em ambos os modos.
-
-## Verificar resultados
-
-### Pelo banco
-
-```bash
-make db-emprestimo
-make db-margem
-make db-saldo       # saldo de margem por CPF (débitos - créditos)
-make db-analise
-```
-
-### Pelo Kafka UI
-
-Abra `http://localhost:8089` no navegador. Tópicos relevantes:
-
-- `emprestimo.solicitado.v1` / `.dlq`
-- `margem.reservada.v1` / `.dlq`
-- `margem.recusada.v1`
-- `margem.liberada.v1` (compensação)
-- `analise.aprovada.v1`
-- `analise.reprovada.v1`
-
-### Pelo terminal Kafka
-
-```bash
-docker exec kafka kafka-console-consumer --bootstrap-server localhost:29092 \
-  --topic analise.aprovada.v1 --property print.headers=true --from-beginning
-```
-
-## Cenário de reprocessamento (DLQ)
+## Reprocessamento de DLQ
 
 Após corrigir a causa raiz, republicar o evento da DLQ no tópico original:
 

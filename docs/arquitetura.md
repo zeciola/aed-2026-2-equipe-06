@@ -186,7 +186,7 @@ Os três serviços declaram um `CommonErrorHandler` (`DefaultErrorHandler`) em s
 - Com a chave de partição fixada no `CPF`, todos os eventos referentes ao mesmo cliente trafegam sequencialmente na mesma partição, eliminando condições de corrida na apuração de margem individual.
 - É possível escalar os consumidores horizontalmente em até 3 instâncias por grupo consumidor sem perder a ordenação por cliente.
 
-### 6.2 O Agregador por Janela Temporal (Etapa 2 / Aula 03)
+### 6.2 O Agregador por Janela Temporal
 Para responder à demanda analítica de apuração de liquidez sem impactar a performance do banco transacional:
 - Um consumidor com grupo próprio (`sistema-margem-agregador`) escuta `margem.reservada.v1`.
 - Agrega as reservas em **Tumbling Windows** de 1 hora baseadas estritamente no **Event Time** (`ce_time`).
@@ -215,6 +215,6 @@ Conforme documentado no histórico de ADRs e aceito pela equipe:
 
 1. **Cálculo Real de Score de Crédito:** Mantido deliberadamente como "caixa-preta" determinística (regra do dígito verificador do CPF no `sistema-analise`), evitando desviar o foco da arquitetura orientada a eventos para regras financeiras de concessão.
 2. **Orquestrador Central:** Descartado no [ADR-006](adr/ADR-006-resiliencia.md). O custo aceito é a ausência de uma consulta única de status global, compensado pela independência e resiliência dos microsserviços.
-3. **Múltiplos Empréstimos Simultâneos e Renegociação:** Ficaram fora do escopo desta etapa. Cada solicitação é avaliada atomicamente sobre a margem remanescente.
+3. **Múltiplos Empréstimos Simultâneos e Renegociação:** Ficaram fora do escopo atual. Cada solicitação é avaliada atomicamente sobre a margem remanescente.
 4. **Execução dos Serviços:** Cada serviço tem seu próprio `Dockerfile` (build Maven multi-stage) e está declarado no `compose.yml` sob o profile `domain` (`docker compose --profile domain up -d --build`). Sem o profile, o Compose sobe só a infraestrutura e os serviços rodam localmente via `./mvnw spring-boot:run`. Essa mudança revê a decisão original do [ADR-003](adr/ADR-003-ambiente-de-execucao.md), que previa apenas infraestrutura no Compose.
-5. **Reprocessamento de DLQ e Transactional Outbox:** Ficaram fora desta etapa; ver [5.3 Limitações Conhecidas](#53-limitações-conhecidas).
+5. **Reprocessamento de DLQ e Transactional Outbox:** Não implementados nesta versão; ver [5.3 Limitações Conhecidas](#53-limitações-conhecidas).

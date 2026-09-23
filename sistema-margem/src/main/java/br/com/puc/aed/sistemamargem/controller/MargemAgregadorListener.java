@@ -53,7 +53,7 @@ public class MargemAgregadorListener {
             margemAgregadorService.registrarReserva(
                     eventoId != null ? eventoId : "desconhecido",
                     evento.cpf(),
-                    evento.solicitacaoId(),
+                    evento.emprestimoId(),
                     timestampEvento
             );
         }

@@ -52,13 +52,13 @@ public class AnaliseService {
         }
 
         log.info("Avaliando crédito para evento={} cliente={}", eventoId, event.cpf());
-        var analise = Analise.decidir(event.cpf(), event.solicitacaoId());
+        var analise = Analise.decidir(event.cpf(), event.emprestimoId());
         analiseRepository.salvar(analise);
 
         if (analise.isAprovada()) {
-            publicarAprovada(event.cpf(), event.solicitacaoId());
+            publicarAprovada(event.cpf(), event.emprestimoId());
         } else {
-            publicarReprovada(event.cpf(), event.solicitacaoId());
+            publicarReprovada(event.cpf(), event.emprestimoId());
         }
     }
 

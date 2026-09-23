@@ -56,21 +56,26 @@ public class MargemService {
         }
 
         log.info("Processando evento={} para o cliente={}", eventoId, event.cpf());
-        var tipo = VERBAS_DEBITO.contains(event.codigoVerba()) ? Margem.Tipo.DEBITO : Margem.Tipo.CREDITO;
+
+        if (!VERBAS_DEBITO.contains(event.codigoVerba())) {
+            gerarMargemRecusadaEvent(event.cpf(), event.emprestimoId(), "Codigo de verba nao permitido");
+            return;
+        }
+
         var margem = new Margem(
                 UUID.randomUUID(),
                 event.cpf(),
                 event.valorParcela(),
                 event.codigoVerba(),
                 Instant.now(),
-                tipo
+                Margem.Tipo.DEBITO
         );
 
         var valorMargemAtual = margemRepository.margemAtual(event.cpf()).orElse(BigDecimal.ZERO);
         var margemRestante = valorMargemAtual.add(margem.getValor());
 
         if (margemRestante.compareTo(BigDecimal.ZERO) < 0) {
-            gerarMargemRecusadaEvent(event.cpf(), event.emprestimoId());
+            gerarMargemRecusadaEvent(event.cpf(), event.emprestimoId(), "Margem insuficiente");
             return;
         }
 
@@ -78,13 +83,13 @@ public class MargemService {
         gerarMargemReservadaEvent(event.cpf(), event.emprestimoId());
     }
 
-    private void gerarMargemRecusadaEvent(String cpf, String emprestimoId) {
+    private void gerarMargemRecusadaEvent(String cpf, String emprestimoId, String motivo) {
         var time = Instant.now();
         var novoEventoId = UUID.randomUUID().toString();
         var event = new MargemRecusadaEvent(
                 cpf,
                 emprestimoId,
-                "Margem insuficiente"
+                motivo
         );
 
         ProducerRecord<String, MargemRecusadaEvent> recusadaEventProducerRecord = new ProducerRecord<>(

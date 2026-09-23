@@ -1,6 +1,10 @@
-# aed-2026-2-equipe-06
+# CredFolha
 
-Arquitetura Reativa e Event-Driven · Atividade Incremental · AED 2026/2 · Equipe 06
+Plataforma de crédito consignado com sagas coreografadas, idempotência e Apache Kafka.
+
+Três serviços Maven independentes comunicam-se estritamente por eventos de domínio
+(CloudEvents 1.0) no Apache Kafka, com consistência eventual, deduplicação atômica
+e compensação automática.
 
 ## Equipe
 
@@ -20,138 +24,160 @@ Líder: Gabriel Moreira da Silva de Faria
 
 Solicitação de empréstimo consignado que reserva margem salarial e passa por análise de
 crédito em sistemas externos, com compensação (cancelamento da reserva de margem) quando a
-análise reprova. Detalhes e critérios atendidos em [docs/adr/ADR-002-dominio-do-projeto.md](docs/adr/ADR-002-dominio-do-projeto.md).
+análise reprova. Detalhes em [docs/adr/ADR-002-dominio-do-projeto.md](docs/adr/ADR-002-dominio-do-projeto.md).
 
-## Como rodar
+## Pré-requisitos
 
-Pré-requisitos: Java 21, Docker e Docker Compose. Cada serviço é um projeto Maven
-independente (usa o próprio `./mvnw`, sem pom pai).
+- Java 21
+- Docker e Docker Compose
+- [asciinema](https://asciinema.org/) (opcional, para gravar a demo)
+- GNU Make
 
 No GitHub Codespaces o ambiente já vem pronto (ver `.devcontainer/`).
-Em Codespace antigo, sem rebuild: `sdk use java 21.0.10-ms`.
 
-### Modo rápido — tudo de uma vez
-
-```bash
-docker compose --profile domain up -d --build
-```
-
-Sobe infraestrutura (Kafka, Postgres, Kafka UI) e os três serviços Java em containers.
-Útil para testar o fluxo completo ou avaliar o projeto sem abrir vários terminais.
-Os serviços Java ficam no profile `domain` do `compose.yml`; sem `--profile domain`,
-só a infraestrutura sobe.
-
-Comandos úteis:
+## Quick start
 
 ```bash
-docker compose --profile domain ps                              # estado dos containers
-docker compose --profile domain up -d --build sistema-margem    # rebuild de um serviço só
-docker compose --profile domain down                            # derruba tudo (-v apaga os volumes)
+make up-all        # sobe Kafka, Postgres, Kafka UI e os 3 serviços Java
+make test-aprovado # dispara o fluxo feliz
+make db-margem     # verifica o resultado no banco
 ```
 
-Logs de cada serviço de domínio (um por terminal; `Ctrl+C` sai sem parar o container):
+Para derrubar: `make down` (ou `make down-clean` para apagar volumes).
+
+## Comandos disponíveis
+
+`make` sem argumentos mostra a ajuda completa. Resumo:
+
+### Infraestrutura
+
+| Comando | O que faz |
+|---|---|
+| `make up` | Sobe infraestrutura (Kafka, Postgres, Kafka UI) |
+| `make up-all` | Sobe infraestrutura + os 3 serviços Java em containers |
+| `make down` | Derruba tudo |
+| `make down-clean` | Derruba tudo e apaga volumes (banco e Kafka) |
+| `make ps` | Estado dos containers |
+| `make rebuild` | Rebuild e restart dos serviços Java (infra mantida) |
+
+### Logs
+
+| Comando | O que faz |
+|---|---|
+| `make logs` | Todos os serviços de domínio |
+| `make logs-emprestimo` | Apenas sistema-emprestimo |
+| `make logs-margem` | Apenas sistema-margem |
+| `make logs-analise` | Apenas sistema-analise |
+
+### Cenários de teste
+
+| Comando | Cenário | O que demonstra |
+|---|---|---|
+| `make test-aprovado` | CPF par → aprovado | Fluxo feliz completo |
+| `make test-reprovado` | CPF ímpar → reprovado | **Saga**: margem reservada, depois compensada |
+| `make test-margem` | Parcela > margem | Recusa sem acionar análise |
+| `make test-dlq` | Banco indisponível simulado | **DLQ**: 9 tentativas com backoff → DLQ (~2 min) |
+| `make test-malformado` | JSON inválido no tópico | DLQ imediata, sem retentativa |
+
+### Consultas no banco
+
+| Comando | O que mostra |
+|---|---|
+| `make db-emprestimo` | Últimos empréstimos |
+| `make db-margem` | Últimos lançamentos (débitos e créditos) |
+| `make db-analise` | Últimas análises de crédito |
+| `make db-saldo` | Saldo de margem por CPF |
+
+### Testes unitários
 
 ```bash
-docker compose logs -f --tail 50 sistema-emprestimo
-```
-```bash
-docker compose logs -f --tail 50 sistema-margem
-```
-```bash
-docker compose logs -f --tail 50 sistema-analise
+make test    # roda os testes dos 3 serviços (precisa de Java 21, sem Docker)
 ```
 
-### Modo desenvolvimento — serviços locais
+## Demo gravada com asciinema
 
-Preferível quando se está editando código (ciclo mais rápido, log isolado por serviço).
-
-**1. Subir a infraestrutura:**
+O script `scripts/demo.sh` percorre todos os cenários com pausas e explicações.
 
 ```bash
-docker compose up -d
+# Rodar interativamente (requer make up-all antes)
+make demo
+
+# Gravar com asciinema (gera demo.cast)
+make demo-record
+
+# Reproduzir a gravação
+make demo-play
 ```
 
-Sobe Kafka (porta `19093`), Postgres (porta `15430`, banco `aed`) e o Kafka UI
-(`http://localhost:8089`, pra inspecionar tópicos e mensagens pelo navegador).
-Os serviços Java não sobem aqui porque estão no profile `domain`.
+A gravação pode ser compartilhada com `asciinema upload demo.cast` ou embedada
+no README com o player web.
 
-Se os containers dos serviços estiverem rodando de um "modo rápido" anterior, pare-os
-antes, senão disputam a porta `8080` e os consumer groups do Kafka:
+## Modo desenvolvimento (serviços locais)
+
+Para ciclo rápido de edição, suba só a infraestrutura e rode os serviços localmente:
 
 ```bash
-docker compose stop sistema-emprestimo sistema-margem sistema-analise
+make up    # sobe só Kafka, Postgres e Kafka UI
+
+# Em 3 terminais separados:
+cd sistema-emprestimo && ./mvnw spring-boot:run   # porta 8080
+cd sistema-margem && ./mvnw spring-boot:run
+cd sistema-analise && ./mvnw spring-boot:run
 ```
 
-**2. Subir os três serviços** (cada um em um terminal):
+Os `make test-*` funcionam em ambos os modos.
+
+## Verificar resultados
+
+### Pelo banco
 
 ```bash
-cd sistema-emprestimo && ./mvnw spring-boot:run   # publisher HTTP, porta 8080
-```
-```bash
-cd sistema-margem && ./mvnw spring-boot:run       # consumidor idempotente (sem porta HTTP)
-```
-```bash
-cd sistema-analise && ./mvnw spring-boot:run      # consumidor idempotente (sem porta HTTP)
+make db-emprestimo
+make db-margem
+make db-saldo       # saldo de margem por CPF (débitos - créditos)
+make db-analise
 ```
 
-### 3. Disparar uma solicitação de empréstimo
+### Pelo Kafka UI
 
-Requisições de exemplo já prontas em [`request/`](request/):
+Abra `http://localhost:8089` no navegador. Tópicos relevantes:
 
-```bash
-cd request
-./make_request.sh cpf_analise_aprovada.json         # fluxo feliz: margem ok, análise de crédito aprova
-./make_request.sh cpf_margem_insuficiente.json      # recusado por margem insuficiente
-./make_request.sh cpf_analise_reprovada.json        # margem ok, análise de crédito reprova
-./make_request.sh cpf_banco_indisponivel.json       # simula banco fora no sistema-margem: retry e DLQ
-```
+- `emprestimo.solicitado.v1` / `.dlq`
+- `margem.reservada.v1` / `.dlq`
+- `margem.recusada.v1`
+- `margem.liberada.v1` (compensação)
+- `analise.aprovada.v1`
+- `analise.reprovada.v1`
 
-O `cpf_banco_indisponivel.json` usa o CPF configurado em `sistema-margem.simulacao.cpf-banco-indisponivel`.
-O `MargemListener` sempre lança um erro transitório de banco para ele, então o evento passa pelas 9
-tentativas (backoff 1s, 2s, 4s, 8s, 16s, 30s, 30s, 30s) e, depois de ~2 minutos, é publicado em
-`emprestimo.solicitado.v1.dlq`. Acompanhe com `docker compose logs -f --tail 50 sistema-margem`
-e veja a mensagem no tópico `.dlq` pelo Kafka UI.
-
-Para o cenário de JSON malformado, a API não serve (ela sempre gera JSON válido): publique direto no
-tópico o `emprestimo_solicitado_malformado.txt`. Cada linha é `ce_id:<id><TAB><cpf><TAB><json>`, com um
-caso de sintaxe quebrada e outro de tipo inválido. Os dois vão direto para `emprestimo.solicitado.v1.dlq`,
-sem retentativa, com os bytes originais:
-
-```bash
-docker exec -i kafka kafka-console-producer --bootstrap-server localhost:29092 \
-  --topic emprestimo.solicitado.v1 --property parse.headers=true --property parse.key=true \
-  < emprestimo_solicitado_malformado.txt
-```
-
-A API responde `202 Accepted` na hora — o resultado (margem reservada/recusada, crédito
-aprovado/reprovado) acontece de forma assíncrona, via Kafka.
-
-### 4. Conferir o resultado
-
-Pelo banco:
-
-```bash
-docker exec postgres psql -U postgres -d aed -c "select * from emprestimo order by data_emprestimo desc limit 5;"
-docker exec postgres psql -U postgres -d aed -c "select * from margem order by criado_em desc limit 5;"
-docker exec postgres psql -U postgres -d aed -c "select * from analise order by criado_em desc limit 5;"
-```
-
-Pelo Kafka (cabeçalhos CloudEvents inclusos):
+### Pelo terminal Kafka
 
 ```bash
 docker exec kafka kafka-console-consumer --bootstrap-server localhost:29092 \
   --topic analise.aprovada.v1 --property print.headers=true --from-beginning
 ```
 
-Ou pelo Kafka UI em `http://localhost:8089`.
+## Cenário de reprocessamento (DLQ)
 
-### 5. Rodar os testes automatizados
+Após corrigir a causa raiz, republicar o evento da DLQ no tópico original:
 
 ```bash
-cd sistema-emprestimo && ./mvnw test
-cd sistema-margem && ./mvnw test
-cd sistema-analise && ./mvnw test
+docker exec kafka kafka-console-consumer --bootstrap-server localhost:29092 \
+  --topic emprestimo.solicitado.v1.dlq --from-beginning --max-messages 1 \
+  --property print.headers=true --property print.key=true \
+  | docker exec -i kafka kafka-console-producer --bootstrap-server localhost:29092 \
+  --topic emprestimo.solicitado.v1 --property parse.headers=true --property parse.key=true
 ```
 
-O `sistema-analise` tem um teste de idempotência ponta a ponta (`IdempotenciaTest`) que sobe
-Kafka embutido e H2 em memória — roda sozinho, sem precisar do `docker compose up`.
+A idempotência por `ce_id` garante que reprocessar o mesmo evento não duplica efeitos.
+
+## Documentação
+
+| Documento | Conteúdo |
+|---|---|
+| [docs/arquitetura.md](docs/arquitetura.md) | Documento de arquitetura (8 seções) |
+| [docs/contrato.md](docs/contrato.md) | Contratos dos eventos de domínio |
+| [docs/adr/ADR-002-dominio-do-projeto.md](docs/adr/ADR-002-dominio-do-projeto.md) | Domínio do projeto |
+| [docs/adr/ADR-003-ambiente-de-execucao.md](docs/adr/ADR-003-ambiente-de-execucao.md) | Ambiente de execução |
+| [docs/adr/ADR-006-resiliencia.md](docs/adr/ADR-006-resiliencia.md) | Saga, compensação e resiliência |
+| [docs/IA.md](docs/IA.md) | Registro de uso de IA |
+| [docs/apresentacao.pdf](docs/apresentacao.pdf) | Slides da apresentação |

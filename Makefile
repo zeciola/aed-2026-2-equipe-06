@@ -10,7 +10,7 @@ WAIT    := 5
 # ──────────────────────────────────────────────
 
 .PHONY: all
-all: up-all wait-ready validate ## Sobe tudo, espera e valida os 4 cenários
+all: up-all wait-ready demo ## Sobe tudo, espera e executa a demo completa
 
 .PHONY: wait-ready
 wait-ready:

@@ -45,10 +45,11 @@ Esse target faz tudo automaticamente:
 1. **Build** dos 3 serviços Java em containers Docker (multi-stage)
 2. **Sobe** Kafka, Postgres, Kafka UI e os 3 serviços
 3. **Aguarda** os healthchecks e o Spring Boot ficar pronto
-4. **Dispara** os 4 cenários de teste e exibe os resultados no banco
+4. **Executa a demo completa** — 3 cenários com explicações, consultas no banco e offsets Kafka
 
-Ao final, o terminal mostra o saldo de margem por CPF e a validação está concluída.
-O Kafka UI fica disponível em `http://localhost:8089` para inspecionar tópicos e mensagens.
+Cada passo explica o que está acontecendo: a cadeia de eventos, o que cada serviço faz,
+e como a compensação funciona. Ao final, mostra o saldo de margem por CPF e a contagem
+de eventos em cada tópico Kafka. O Kafka UI fica em `http://localhost:8089`.
 
 Para derrubar: `make down` (ou `make down-clean` para apagar volumes).
 
@@ -57,7 +58,7 @@ Para derrubar: `make down` (ou `make down-clean` para apagar volumes).
 `make` sem argumentos mostra a ajuda:
 
 ```
-  all                Sobe tudo, espera e valida os 4 cenários
+  all                Sobe tudo, espera e executa a demo completa
   up                 Sobe só infraestrutura (Kafka, Postgres, Kafka UI)
   up-all             Sobe infraestrutura + os 3 serviços Java
   down               Derruba tudo

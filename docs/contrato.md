@@ -147,3 +147,120 @@ Leitura em português: em 31/08/2026 às 14:23:07 UTC, o `sistema-margem`
 reservou margem do cliente de CPF `11111111111` para a solicitação de empréstimo
 `8c1d47b2-5e39-4a86-9f10-2b7c33d4e5a1`. Se este mesmo `ce_id` chegar de novo,
 é reentrega — descarte.
+
+---
+
+# Contrato do evento `margem.liberada.v1`
+
+Documento voltado a **quem consome** o evento de compensação.
+Descreve o que o `sistema-margem` publica quando a análise de crédito reprova
+uma solicitação cuja margem já havia sido reservada — o estorno contábil da Saga.
+
+---
+
+## 1. Identificação
+
+| Item | Valor |
+|---|---|
+| Tipo do evento (`ce_type`) | `margem.liberada.v1` |
+| Tópico Kafka | `margem.liberada.v1` |
+| Agregado produtor | Margem (`sistema-margem`) |
+| Origem (`ce_source`) | `sistema-margem` |
+| Envelope | CloudEvents 1.0, modo *binary* (metadados em headers Kafka, domínio no corpo JSON) |
+| Consumidores previstos | Auditoria, notificação ao cliente |
+| Partições do tópico | 3 (auto-create) |
+
+Grafia definida em `sistema-margem/src/main/resources/application.yaml`
+(`sistema-margem.topico.margem-liberada`, default `margem.liberada.v1`)
+e no header `ce_type` em `MargemService.gerarMargemLiberadaEvent`
+(`sistema-margem/src/main/java/br/com/puc/aed/sistemamargem/service/MargemService.java:171`).
+
+---
+
+## 2. Campos
+
+### 2.1 Metadados (headers Kafka — envelope CloudEvents)
+
+Idênticos ao envelope de `margem.reservada.v1` (seção 2.1 acima). Destaques:
+
+| Nome | Tipo | Obrigatório | Significado |
+|---|---|---|---|
+| `ce_id` | string (UUID v4) | sim | Identificador único **desta publicação** do fato de compensação. Usado para deduplicação idempotente pelo consumidor. |
+| `ce_type` | string | sim | `margem.liberada.v1` |
+| `ce_source` | string | sim | `sistema-margem` |
+| `ce_time` | string ISO-8601 (UTC) | sim | Instante em que o estorno foi efetivado no banco do produtor. |
+| `ce_specversion` | string | sim | `1.0` |
+
+### 2.2 Corpo (JSON)
+
+| Nome | Tipo | Obrigatório | Significado |
+|---|---|---|---|
+| `cpf` | string (11 dígitos, sem pontuação) | sim | CPF do cliente **cuja margem foi liberada**. Também é a chave de partição do registro. |
+| `solicitacaoId` | string (UUID) | sim | Identificador da solicitação de empréstimo cuja reserva está sendo estornada — correlaciona este fato de compensação ao fluxo original. |
+| `motivo` | string | sim | Razão pela qual a margem foi liberada (ex: `"Análise de crédito reprovada"`). Propagado a partir do `AnaliseReprovadaEvent` que disparou a compensação. |
+
+**O que o evento afirma.** Que a margem anteriormente reservada para aquela
+solicitação foi estornada: um lançamento contábil a crédito anulou o débito
+original na tabela `margem`. O saldo do cliente voltou ao estado anterior à
+reserva.
+
+**O que o evento NÃO afirma.** Não afirma que a solicitação foi cancelada no
+`sistema-emprestimo`, nem que o cliente foi notificado. Cada consumidor reage
+ao fato de forma autônoma.
+
+---
+
+## 3. Formato de datas
+
+Mesmo padrão de `margem.reservada.v1`: **ISO-8601 em UTC, com sufixo `Z`**
+(`java.time.Instant`). Nunca epoch.
+
+---
+
+## 4. Chave de partição e ordem garantida
+
+**Chave:** o `cpf` do cliente (`MargemService.java:162`, o `ProducerRecord`
+recebe `cpf` como key).
+
+Mesma semântica de `margem.reservada.v1`: todos os eventos do mesmo CPF —
+inclusive a reserva e a liberação — caem na mesma partição, preservando a ordem
+cronológica do ciclo de vida da margem.
+
+---
+
+## 5. Regra de compatibilidade: **BACKWARD**
+
+Mesma regra de `margem.reservada.v1`. Campos novos são opcionais com default;
+consumidores usam `@JsonIgnoreProperties(ignoreUnknown = true)`.
+
+---
+
+## 6. Exemplo de carga (valores fictícios)
+
+**Headers Kafka:**
+
+```
+ce_specversion: 1.0
+ce_type:        margem.liberada.v1
+ce_source:      sistema-margem
+ce_id:          a1b2c3d4-e5f6-7890-abcd-ef1234567890
+ce_time:        2026-08-31T14:25:12.003Z
+```
+
+**Chave do registro:** `"11111111111"`
+
+**Corpo:**
+
+```json
+{
+  "cpf": "11111111111",
+  "solicitacaoId": "8c1d47b2-5e39-4a86-9f10-2b7c33d4e5a1",
+  "motivo": "Análise de crédito reprovada"
+}
+```
+
+Leitura em português: em 31/08/2026 às 14:25:12 UTC, o `sistema-margem`
+liberou a margem do cliente de CPF `11111111111` que havia sido reservada para a
+solicitação `8c1d47b2-5e39-4a86-9f10-2b7c33d4e5a1`, porque a análise de crédito
+foi reprovada. O débito original foi anulado por um lançamento a crédito.
+Se este mesmo `ce_id` chegar de novo, é reentrega — descarte.

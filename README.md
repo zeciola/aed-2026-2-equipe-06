@@ -1,6 +1,10 @@
-# aed-2026-2-equipe-06
+# CredFolha
 
-Arquitetura Reativa e Event-Driven · Atividade Incremental · AED 2026/2 · Equipe 06
+Plataforma de crédito consignado com sagas coreografadas, idempotência e Apache Kafka.
+
+Três serviços Maven independentes comunicam-se estritamente por eventos de domínio
+(CloudEvents 1.0) no Apache Kafka, com consistência eventual, deduplicação atômica
+e compensação automática.
 
 ## Equipe
 
@@ -20,138 +24,112 @@ Líder: Gabriel Moreira da Silva de Faria
 
 Solicitação de empréstimo consignado que reserva margem salarial e passa por análise de
 crédito em sistemas externos, com compensação (cancelamento da reserva de margem) quando a
-análise reprova. Detalhes e critérios atendidos em [docs/adr/ADR-002-dominio-do-projeto.md](docs/adr/ADR-002-dominio-do-projeto.md).
+análise reprova. Detalhes em [docs/adr/ADR-002-dominio-do-projeto.md](docs/adr/ADR-002-dominio-do-projeto.md).
 
-## Como rodar
+## Pré-requisitos
 
-Pré-requisitos: Java 21, Docker e Docker Compose. Cada serviço é um projeto Maven
-independente (usa o próprio `./mvnw`, sem pom pai).
+- Docker e Docker Compose
+- GNU Make
+- Java 21 (apenas para desenvolvimento local e testes unitários)
 
 No GitHub Codespaces o ambiente já vem pronto (ver `.devcontainer/`).
-Em Codespace antigo, sem rebuild: `sdk use java 21.0.10-ms`.
 
-### Modo rápido — tudo de uma vez
-
-```bash
-docker compose --profile domain up -d --build
-```
-
-Sobe infraestrutura (Kafka, Postgres, Kafka UI) e os três serviços Java em containers.
-Útil para testar o fluxo completo ou avaliar o projeto sem abrir vários terminais.
-Os serviços Java ficam no profile `domain` do `compose.yml`; sem `--profile domain`,
-só a infraestrutura sobe.
-
-Comandos úteis:
+## Subir e validar — um único comando
 
 ```bash
-docker compose --profile domain ps                              # estado dos containers
-docker compose --profile domain up -d --build sistema-margem    # rebuild de um serviço só
-docker compose --profile domain down                            # derruba tudo (-v apaga os volumes)
+make all
 ```
 
-Logs de cada serviço de domínio (um por terminal; `Ctrl+C` sai sem parar o container):
+Esse target faz tudo automaticamente:
+
+1. **Build** dos 3 serviços Java em containers Docker (multi-stage)
+2. **Sobe** Kafka, Postgres, Kafka UI e os 3 serviços
+3. **Aguarda** os healthchecks e o Spring Boot ficar pronto
+4. **Dispara** os 4 cenários de teste e exibe os resultados no banco
+
+Ao final, o terminal mostra o saldo de margem por CPF e a validação está concluída.
+O Kafka UI fica disponível em `http://localhost:8089` para inspecionar tópicos e mensagens.
+
+Para derrubar: `make down` (ou `make down-clean` para apagar volumes).
+
+## Todos os comandos
+
+`make` sem argumentos mostra a ajuda:
+
+```
+  all                Sobe tudo, espera e valida os 4 cenários
+  up                 Sobe só infraestrutura (Kafka, Postgres, Kafka UI)
+  up-all             Sobe infraestrutura + os 3 serviços Java
+  down               Derruba tudo
+  down-clean         Derruba tudo e apaga volumes
+  ps                 Estado dos containers
+  rebuild            Rebuild dos serviços Java (infra mantida)
+  logs               Logs dos 3 serviços (Ctrl+C sai)
+  db                 Saldo de margem por CPF + últimos lançamentos
+  test-aprovado      Fluxo feliz: análise aprova
+  test-reprovado     Análise reprova → compensação (Saga)
+  test-margem        Margem insuficiente
+  test-dlq           Falha transitória → DLQ (~2 min)
+  test-malformado    JSON malformado → DLQ imediata
+  test               Testes unitários (precisa de Java 21)
+  demo               Demo completa com pausas (requer serviços rodando)
+```
+
+## Cenários de teste
+
+| Comando | Cenário | O que demonstra |
+|---|---|---|
+| `make test-aprovado` | CPF par → aprovado | Fluxo feliz completo |
+| `make test-reprovado` | CPF ímpar → reprovado | **Saga**: margem reservada, depois compensada |
+| `make test-margem` | Parcela > margem | Recusa sem acionar análise |
+| `make test-dlq` | Banco indisponível simulado | **DLQ**: 9 tentativas com backoff → DLQ (~2 min) |
+| `make test-malformado` | JSON inválido no tópico | DLQ imediata, sem retentativa |
+
+## Demo
+
+O script `scripts/demo.sh` percorre todos os cenários com pausas explicativas.
+A demonstração do funcionamento foi gravada com [asciinema](https://asciinema.org/).
 
 ```bash
-docker compose logs -f --tail 50 sistema-emprestimo
-```
-```bash
-docker compose logs -f --tail 50 sistema-margem
-```
-```bash
-docker compose logs -f --tail 50 sistema-analise
+make up-all      # se ainda não estiver rodando
+make demo        # executa a demo completa
 ```
 
-### Modo desenvolvimento — serviços locais
+## Modo desenvolvimento (serviços locais)
 
-Preferível quando se está editando código (ciclo mais rápido, log isolado por serviço).
-
-**1. Subir a infraestrutura:**
+Para editar código com ciclo rápido:
 
 ```bash
-docker compose up -d
+make up    # sobe só Kafka, Postgres e Kafka UI
+
+# Em 3 terminais separados:
+cd sistema-emprestimo && ./mvnw spring-boot:run   # porta 8080
+cd sistema-margem && ./mvnw spring-boot:run
+cd sistema-analise && ./mvnw spring-boot:run
 ```
 
-Sobe Kafka (porta `19093`), Postgres (porta `15430`, banco `aed`) e o Kafka UI
-(`http://localhost:8089`, pra inspecionar tópicos e mensagens pelo navegador).
-Os serviços Java não sobem aqui porque estão no profile `domain`.
+## Reprocessamento de DLQ
 
-Se os containers dos serviços estiverem rodando de um "modo rápido" anterior, pare-os
-antes, senão disputam a porta `8080` e os consumer groups do Kafka:
-
-```bash
-docker compose stop sistema-emprestimo sistema-margem sistema-analise
-```
-
-**2. Subir os três serviços** (cada um em um terminal):
-
-```bash
-cd sistema-emprestimo && ./mvnw spring-boot:run   # publisher HTTP, porta 8080
-```
-```bash
-cd sistema-margem && ./mvnw spring-boot:run       # consumidor idempotente (sem porta HTTP)
-```
-```bash
-cd sistema-analise && ./mvnw spring-boot:run      # consumidor idempotente (sem porta HTTP)
-```
-
-### 3. Disparar uma solicitação de empréstimo
-
-Requisições de exemplo já prontas em [`request/`](request/):
-
-```bash
-cd request
-./make_request.sh cpf_analise_aprovada.json         # fluxo feliz: margem ok, análise de crédito aprova
-./make_request.sh cpf_margem_insuficiente.json      # recusado por margem insuficiente
-./make_request.sh cpf_analise_reprovada.json        # margem ok, análise de crédito reprova
-./make_request.sh cpf_banco_indisponivel.json       # simula banco fora no sistema-margem: retry e DLQ
-```
-
-O `cpf_banco_indisponivel.json` usa o CPF configurado em `sistema-margem.simulacao.cpf-banco-indisponivel`.
-O `MargemListener` sempre lança um erro transitório de banco para ele, então o evento passa pelas 9
-tentativas (backoff 1s, 2s, 4s, 8s, 16s, 30s, 30s, 30s) e, depois de ~2 minutos, é publicado em
-`emprestimo.solicitado.v1.dlq`. Acompanhe com `docker compose logs -f --tail 50 sistema-margem`
-e veja a mensagem no tópico `.dlq` pelo Kafka UI.
-
-Para o cenário de JSON malformado, a API não serve (ela sempre gera JSON válido): publique direto no
-tópico o `emprestimo_solicitado_malformado.txt`. Cada linha é `ce_id:<id><TAB><cpf><TAB><json>`, com um
-caso de sintaxe quebrada e outro de tipo inválido. Os dois vão direto para `emprestimo.solicitado.v1.dlq`,
-sem retentativa, com os bytes originais:
-
-```bash
-docker exec -i kafka kafka-console-producer --bootstrap-server localhost:29092 \
-  --topic emprestimo.solicitado.v1 --property parse.headers=true --property parse.key=true \
-  < emprestimo_solicitado_malformado.txt
-```
-
-A API responde `202 Accepted` na hora — o resultado (margem reservada/recusada, crédito
-aprovado/reprovado) acontece de forma assíncrona, via Kafka.
-
-### 4. Conferir o resultado
-
-Pelo banco:
-
-```bash
-docker exec postgres psql -U postgres -d aed -c "select * from emprestimo order by data_emprestimo desc limit 5;"
-docker exec postgres psql -U postgres -d aed -c "select * from margem order by criado_em desc limit 5;"
-docker exec postgres psql -U postgres -d aed -c "select * from analise order by criado_em desc limit 5;"
-```
-
-Pelo Kafka (cabeçalhos CloudEvents inclusos):
+Após corrigir a causa raiz, republicar o evento da DLQ no tópico original:
 
 ```bash
 docker exec kafka kafka-console-consumer --bootstrap-server localhost:29092 \
-  --topic analise.aprovada.v1 --property print.headers=true --from-beginning
+  --topic emprestimo.solicitado.v1.dlq --from-beginning --max-messages 1 \
+  --property print.headers=true --property print.key=true \
+  | docker exec -i kafka kafka-console-producer --bootstrap-server localhost:29092 \
+  --topic emprestimo.solicitado.v1 --property parse.headers=true --property parse.key=true
 ```
 
-Ou pelo Kafka UI em `http://localhost:8089`.
+A idempotência por `ce_id` garante que reprocessar o mesmo evento não duplica efeitos.
 
-### 5. Rodar os testes automatizados
+## Documentação
 
-```bash
-cd sistema-emprestimo && ./mvnw test
-cd sistema-margem && ./mvnw test
-cd sistema-analise && ./mvnw test
-```
-
-O `sistema-analise` tem um teste de idempotência ponta a ponta (`IdempotenciaTest`) que sobe
-Kafka embutido e H2 em memória — roda sozinho, sem precisar do `docker compose up`.
+| Documento | Conteúdo |
+|---|---|
+| [docs/arquitetura.md](docs/arquitetura.md) | Documento de arquitetura (8 seções) |
+| [docs/contrato.md](docs/contrato.md) | Contratos dos eventos de domínio |
+| [docs/adr/ADR-002-dominio-do-projeto.md](docs/adr/ADR-002-dominio-do-projeto.md) | Domínio do projeto |
+| [docs/adr/ADR-003-ambiente-de-execucao.md](docs/adr/ADR-003-ambiente-de-execucao.md) | Ambiente de execução |
+| [docs/adr/ADR-006-resiliencia.md](docs/adr/ADR-006-resiliencia.md) | Saga, compensação e resiliência |
+| [docs/IA.md](docs/IA.md) | Registro de uso de IA |
+| [docs/apresentacao.pdf](docs/apresentacao.pdf) | Slides da apresentação |
